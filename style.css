@@ -1,0 +1,342 @@
+/* General Reset */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #f0f2f5;
+    width: 800px;
+    display: flex;
+    justify-content: center;
+    padding-top: 50px;
+    color: #333;
+}
+
+.settings-card {
+    background: #ffffff;
+    width: 100%;
+    max-width: 900px;
+    border-radius: 12px;
+    padding: 30px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.05);
+    border: 1px solid #e0e0e0;
+}
+
+/* Header & Header Actions */
+.main-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.logo {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.header-right {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+/* --- Language Dropdown (Purple Theme) --- */
+.language-dropdown {
+    position: relative;
+    border: 1px solid #8864ea; /* Purple border from image */
+    padding: 6px 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    cursor: pointer;
+    background: #fff;
+    transition: all 0.2s;
+}
+
+.dropdown-trigger {
+    align-items: center;
+    width: 110px;;
+    gap: 10px;
+}
+
+.dropdown-content {
+    display: none;
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    background-color: white;
+    min-width: 150px;
+    box-shadow: 0px 8px 20px rgba(0,0,0,0.1);
+    border-radius: 10px;
+    z-index: 100;
+    padding: 8px 0;
+    border: 1px solid #eee;
+}
+
+.language-dropdown:focus .dropdown-content,
+.language-dropdown:hover .dropdown-content {
+    display: block;
+}
+
+./* Hide checkmarks by default */
+.dropdown-item .check {
+    visibility: hidden;
+    font-size: 12px;
+}
+
+/* Show checkmark ONLY on the active item */
+.dropdown-item.active .check {
+    visibility: visible;
+    color: #7d5bd9;
+}
+
+/* Ensure the dropdown-item uses flex to align check and text */
+.dropdown-item {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #666;
+    cursor: pointer; /* Makes it feel clickable */
+}
+
+
+.dropdown-item.active {
+    color: #7c4dff;
+    font-weight: 500;
+}
+
+/* --- Import/Export Dropdown (Grey Theme) --- */
+.menu-container {
+    position: relative;
+}
+
+.menu-burger {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+}
+
+.import-export-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    background: white;
+    width: 260px;
+    padding: 25px 15px 15px 15px;
+    border-radius: 12px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    z-index: 101;
+    border: 1px solid #f0f0f0;
+}
+
+.menu-container:focus-within .import-export-dropdown {
+    display: block;
+}
+
+.close-menu {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    color: #d9534f;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.menu-btn {
+    width: 100%;
+    background-color: #f4f6f8;
+    border: 1px solid #8e9aaf;
+    color: #4a5568;
+    padding: 12px;
+    margin-bottom: 12px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.menu-btn:hover {
+    background-color: #e2e8f0;
+}
+
+/* --- Modern Table Styling --- */
+.default-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 35px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.default-table th {
+    background: linear-gradient(to bottom, #85bdf4, #82bdf8);
+    color: #425063;
+    padding: 14px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    border-bottom: 1px solid #0a0a0a;
+    text-align: left;
+}
+
+.default-table td {
+    padding: 16px 20px;
+    background-color: #d3dfe8;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 14px;
+    color: #334155;
+    transition: background 0.2s;
+}
+
+.default-table tr:last-child td {
+    border-bottom: none;
+}
+
+.default-table tr:hover td {
+    background-color: #f8fafc; /* Subtle highlight on hover */
+}
+
+/* --- Attractive Shortcut Rows --- */
+.shortcut-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.shortcut-row {
+    display: grid;
+    grid-template-columns: 40px 1.5fr 1fr 1fr 1.2fr 40px;
+    gap: 15px;
+    align-items: center;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    padding: 12px 18px;
+    border-radius: 10px;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.shortcut-row:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+    border-color: #cbd5e1;
+}
+
+.index {
+    color: #7990b1;
+    font-weight: 700;
+    font-size: 14px;
+}
+
+/* --- Enhanced Inputs --- */
+.input-field {
+    width: 100%;
+    padding: 10px 14px;
+    border: 1.5px solid #f6f8fa;
+    border-radius: 8px;
+    font-size: 13px;
+    color: #1e293b;
+    background-color: #fcfcfd;
+    transition: all 0.2s;
+}
+
+.input-field:focus {
+    outline: none;
+    border-color: #7549f0;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.1);
+}
+
+.btn-remove {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    border: none;
+    background: #fff1f0;
+    color: #f72b35;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-remove:hover {
+    background: #f5222d;
+    color: white;
+}
+
+.btn-add {
+    width: 100%;
+    background-color: #5ce09c;
+    color: #1a4d2e;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 15px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: opacity 0.2s;
+}
+
+.shortcut-row {
+    display: grid;
+    grid-template-columns: 20px 1fr 1fr 1fr 1.2fr 20px;
+    gap: 15px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    padding: 10px 15px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.input-field {
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    color: #555;
+}
+
+/* Footer Section */
+.footer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.btn-delete-all {
+    align-self: flex-end;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 20px;
+}
+
+.show-more {
+    font-size: 14px;
+    color: #444;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
