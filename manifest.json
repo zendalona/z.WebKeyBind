@@ -2,7 +2,11 @@
   "manifest_version": 3,
   "name": "z.WebKeyBind",
   "version": "1.0",
-  "permissions": ["storage", "activeTab", "scripting"],
+  "permissions": [
+    "storage",      
+    "activeTab", 
+    "scripting"
+  ],
   "action": {
     "default_popup": "index.html",
     "default_title": "z.WebKeyBind Settings"

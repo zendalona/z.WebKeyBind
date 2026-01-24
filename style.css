@@ -1,4 +1,6 @@
-/* General Reset */
+/* =========================================
+   1. GLOBAL RESET & LAYOUT
+   ========================================= */
 * {
     box-sizing: border-box;
     margin: 0;
@@ -25,7 +27,9 @@ body {
     border: 1px solid #e0e0e0;
 }
 
-/* Header & Header Actions */
+/* =========================================
+   2. HEADER SECTION
+   ========================================= */
 .main-header {
     display: flex;
     justify-content: space-between;
@@ -44,129 +48,175 @@ body {
     align-items: center;
 }
 
-/* --- Language Dropdown (Purple Theme) --- */
+/* =========================================
+   3. LANGUAGE DROPDOWN (PROPER FIX)
+   ========================================= */
 .language-dropdown {
     position: relative;
-    border: 1px solid #8864ea; /* Purple border from image */
-    padding: 6px 12px;
+    border: 1px solid #8864ea; /* Purple theme */
+    padding: 8px 12px;
     border-radius: 8px;
     font-size: 14px;
     cursor: pointer;
     background: #fff;
     transition: all 0.2s;
+    user-select: none;
+    min-width: 130px;
+}
+
+.language-dropdown:hover {
+    background-color: #fcfaff;
+    box-shadow: 0 2px 8px rgba(136, 100, 234, 0.2);
 }
 
 .dropdown-trigger {
+    display: flex;
     align-items: center;
-    width: 110px;;
+    justify-content: space-between;
     gap: 10px;
 }
 
+.globe-icon {
+    font-size: 16px;
+}
+
+/* The Menu List */
 .dropdown-content {
-    display: none;
+    display: none; /* JS toggles this */
     position: absolute;
-    top: calc(100% + 5px);
+    top: calc(100% + 8px);
     right: 0;
     background-color: white;
-    min-width: 150px;
-    box-shadow: 0px 8px 20px rgba(0,0,0,0.1);
+    min-width: 160px;
+    box-shadow: 0px 10px 25px rgba(0,0,0,0.15);
     border-radius: 10px;
-    z-index: 100;
-    padding: 8px 0;
-    border: 1px solid #eee;
+    z-index: 1000; /* Floats above table */
+    padding: 6px;
+    border: 1px solid #eef2f6;
+    animation: fadeIn 0.2s ease-in-out;
 }
 
-.language-dropdown:focus .dropdown-content,
-.language-dropdown:hover .dropdown-content {
-    display: block;
-}
-
-./* Hide checkmarks by default */
-.dropdown-item .check {
-    visibility: hidden;
-    font-size: 12px;
-}
-
-/* Show checkmark ONLY on the active item */
-.dropdown-item.active .check {
-    visibility: visible;
-    color: #7d5bd9;
-}
-
-/* Ensure the dropdown-item uses flex to align check and text */
+/* Dropdown Items */
 .dropdown-item {
-    padding: 10px 16px;
+    padding: 10px 12px;
     display: flex;
     align-items: center;
     gap: 10px;
-    color: #666;
-    cursor: pointer; /* Makes it feel clickable */
+    color: #555;
+    font-size: 14px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background 0.15s;
 }
 
+.dropdown-item:hover {
+    background-color: #f3f0ff;
+    color: #6a40d6;
+}
+
+.dropdown-item .check {
+    opacity: 0;
+    font-size: 14px;
+    color: #7d5bd9;
+    font-weight: bold;
+    width: 15px;
+    transition: opacity 0.2s;
+}
+
+.dropdown-item.active .check {
+    opacity: 1;
+}
 
 .dropdown-item.active {
-    color: #7c4dff;
-    font-weight: 500;
+    background-color: #f9f7ff;
+    color: #7d5bd9;
+    font-weight: 600;
 }
 
-/* --- Import/Export Dropdown (Grey Theme) --- */
+/* =========================================
+   4. IMPORT/EXPORT MENU (PROPER FIX)
+   ========================================= */
 .menu-container {
     position: relative;
 }
 
 .menu-burger {
-    background: none;
+    background: transparent;
     border: none;
-    font-size: 24px;
+    font-size: 26px;
     cursor: pointer;
+    padding: 0 5px;
+    color: #555;
+    transition: color 0.2s;
+}
+
+.menu-burger:hover {
+    color: #000;
 }
 
 .import-export-dropdown {
-    display: none;
+    display: none; /* JS toggles this */
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
     background: white;
     width: 260px;
-    padding: 25px 15px 15px 15px;
+    padding: 15px;
     border-radius: 12px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
-    z-index: 101;
-    border: 1px solid #f0f0f0;
-}
-
-.menu-container:focus-within .import-export-dropdown {
-    display: block;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+    z-index: 1001; /* Floats above everything */
+    border: 1px solid #e2e8f0;
+    animation: fadeIn 0.2s ease-in-out;
 }
 
 .close-menu {
     position: absolute;
-    top: 8px;
-    right: 12px;
-    color: #d9534f;
-    font-size: 18px;
+    top: 10px;
+    right: 15px;
+    color: #999;
+    font-size: 20px;
     cursor: pointer;
+    transition: color 0.2s;
+}
+
+.close-menu:hover {
+    color: #e74c3c;
 }
 
 .menu-btn {
     width: 100%;
-    background-color: #f4f6f8;
-    border: 1px solid #8e9aaf;
+    background-color: #fff;
+    border: 1px solid #e2e8f0;
     color: #4a5568;
     padding: 12px;
-    margin-bottom: 12px;
+    margin-bottom: 8px;
     border-radius: 8px;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: 0.2s;
+    text-align: left;
+    transition: all 0.2s;
 }
 
 .menu-btn:hover {
-    background-color: #e2e8f0;
+    background-color: #f8fafc;
+    border-color: #cbd5e1;
+    color: #1a202c;
+    transform: translateX(2px);
 }
 
-/* --- Modern Table Styling --- */
+.menu-btn:last-child {
+    margin-bottom: 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =========================================
+   5. TABLE STYLING
+   ========================================= */
 .default-table {
     width: 100%;
     border-collapse: separate;
@@ -186,7 +236,7 @@ body {
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    border-bottom: 1px solid #0a0a0a;
+    border-bottom: 1px solid #649ad4;
     text-align: left;
 }
 
@@ -204,10 +254,56 @@ body {
 }
 
 .default-table tr:hover td {
-    background-color: #f8fafc; /* Subtle highlight on hover */
+    background-color: #eef4f8; 
 }
 
-/* --- Attractive Shortcut Rows --- */
+/* =========================================
+   6. SHORTCUT INPUT ROWS
+   ========================================= */
+.section-group {
+    margin-bottom: 25px;
+}
+
+.section-title {
+    font-size: 18px;
+    margin-bottom: 15px;
+    color: #2c3e50;
+}
+
+.divider {
+    border: 0;
+    height: 1px;
+    background: #e0e0e0;
+    margin: 30px 0;
+}
+
+.btn-add {
+    width: 100%;
+    background-color: #5ce09c;
+    color: #0f3d23;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 15px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: background 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+
+.btn-add:hover {
+    background-color: #4ad68d;
+}
+
+.plus {
+    font-size: 18px;
+    font-weight: bold;
+}
+
 .shortcut-list {
     display: flex;
     flex-direction: column;
@@ -216,43 +312,44 @@ body {
 
 .shortcut-row {
     display: grid;
-    grid-template-columns: 40px 1.5fr 1fr 1fr 1.2fr 40px;
-    gap: 15px;
+    grid-template-columns: 30px 1.5fr 1fr 1fr 0.8fr 30px;
+    gap: 12px;
     align-items: center;
     background: #ffffff;
     border: 1px solid #e2e8f0;
-    padding: 12px 18px;
+    padding: 12px 15px;
     border-radius: 10px;
     transition: transform 0.2s, box-shadow 0.2s;
 }
 
 .shortcut-row:hover {
     transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
     border-color: #cbd5e1;
 }
 
 .index {
-    color: #7990b1;
+    color: #94a3b8;
     font-weight: 700;
     font-size: 14px;
+    text-align: center;
 }
 
-/* --- Enhanced Inputs --- */
+/* Enhanced Inputs */
 .input-field {
     width: 100%;
-    padding: 10px 14px;
-    border: 1.5px solid #f6f8fa;
+    padding: 10px 12px;
+    border: 1.5px solid #f1f5f9;
     border-radius: 8px;
     font-size: 13px;
     color: #1e293b;
-    background-color: #fcfcfd;
+    background-color: #f8fafc;
     transition: all 0.2s;
 }
 
 .input-field:focus {
     outline: none;
-    border-color: #7549f0;
+    border-color: #7c4dff;
     background-color: #ffffff;
     box-shadow: 0 0 0 3px rgba(124, 77, 255, 0.1);
 }
@@ -266,77 +363,66 @@ body {
     border-radius: 50%;
     border: none;
     background: #fff1f0;
-    color: #f72b35;
+    color: #ff4d4f;
     font-size: 18px;
     cursor: pointer;
     transition: all 0.2s;
 }
 
 .btn-remove:hover {
-    background: #f5222d;
+    background: #ff4d4f;
     color: white;
 }
 
-.btn-add {
-    width: 100%;
-    background-color: #5ce09c;
-    color: #1a4d2e;
-    border: none;
-    padding: 12px;
-    border-radius: 8px;
-    font-weight: 600;
-    font-size: 15px;
-    cursor: pointer;
-    margin-bottom: 20px;
-    transition: opacity 0.2s;
-}
-
-.shortcut-row {
-    display: grid;
-    grid-template-columns: 20px 1fr 1fr 1fr 1.2fr 20px;
-    gap: 15px;
-    align-items: center;
-    background: #fff;
-    border: 1px solid #e0e0e0;
-    padding: 10px 15px;
-    border-radius: 8px;
-    margin-bottom: 10px;
-}
-
-.input-field {
-    width: 100%;
-    padding: 8px 10px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
-    font-size: 13px;
-    color: #555;
-}
-
-/* Footer Section */
+/* =========================================
+   7. FOOTER SECTION
+   ========================================= */
 .footer {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
     align-items: center;
-    margin-top: 20px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
 }
 
 .btn-delete-all {
-    align-self: flex-end;
-    background-color: #e74c3c;
-    color: white;
-    border: none;
+    background-color: #fff1f0;
+    color: #ff4d4f;
+    border: 1px solid #ffccc7;
     padding: 10px 20px;
-    border-radius: 6px;
-    font-weight: bold;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 13px;
     cursor: pointer;
-    margin-bottom: 20px;
+    transition: all 0.2s;
 }
 
-.show-more {
+.btn-delete-all:hover {
+    background-color: #ff4d4f;
+    color: white;
+    border-color: #ff4d4f;
+}
+
+.btn-show-all {
     font-size: 14px;
-    color: #444;
+    color: #555;
     cursor: pointer;
+    font-weight: 500;
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 6px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    transition: background 0.2s;
+}
+
+.btn-show-all:hover {
+    background-color: #f1f5f9;
+    color: #000;
+}
+
+.arrow-circle {
+    font-size: 12px;
+    color: #888;
 }
