@@ -39,9 +39,9 @@
                     <button class="menu-burger">☰</button>
                     <div class="import-export-dropdown">
                         <div class="close-menu">×</div>
-                        <button class="menu-btn">Import Shortcuts</button>
-                        <button class="menu-btn">Export Current Site Shortcuts</button>
-                        <button class="menu-btn">Export All Shortcuts</button>
+                        <button class="menu-btn" id="btn-import">Import Shortcuts</button>
+                        <button class="menu-btn" id="btn-export-site">Export Current Site</button>
+                        <button class="menu-btn" id="btn-export-all">Export All Shortcuts</button>
                     </div>
                 </div>
             </div>
@@ -81,21 +81,8 @@
 
         <section class="section-group">
             <h2 class="section-title">Saved Shortcuts</h2>
-
-            <button class="btn-add">
-                <span class="plus">+</span> Add Shortcut
-            </button>
-
-            <div class="shortcut-list">
-                <div class="shortcut-row">
-                    <!-- <span class="index">1</span>
-                    <input type="text" value="URL" class="input-field">
-                    <input type="text" placeholder="Login Page" class="input-field">
-                    <input type="text" placeholder="Element ID" class="input-field">
-                    <input type="text" placeholder="Option/Ctrl+Shift+ L" class="input-field">
-                    <button class="btn-remove">×</button> -->
-                </div>
-            </div>
+            <button class="btn-add"><span class="plus">+</span> Add Shortcut</button>
+            <div class="shortcut-list"></div>
         </section>
 
         <footer class="footer">
@@ -106,8 +93,36 @@
         </footer>
     </div>
 
-    <script src="popup.js"></script>
+    <div id="import-modal" class="modal-overlay" style="display:none;">
+        <div class="modal-content">
+            <h3>Import Shortcuts</h3>
+            <div id="drop-zone" class="drop-zone">
+                <p>Drag & Drop .json file here</p>
+                <p style="font-size:12px; color:#999;">or click to browse</p>
+                <input type="file" id="file-input" accept=".json" style="display:none;">
+            </div>
+            <button id="btn-close-import" class="btn-close-modal">Close</button>
+        </div>
+    </div>
 
+    <div id="import-modal" class="modal-overlay">
+        <div class="modal-content">
+            <h3 class="modal-title">Import Shortcuts</h3>
+
+            <div id="drop-zone" class="drop-zone">
+                <span class="upload-icon">📂</span>
+                <p>Drag & Drop <b>.json</b> file here</p>
+                <p class="sub-text">or click to browse</p>
+                <input type="file" id="file-input" accept=".json" style="display:none;">
+            </div>
+
+            <button id="btn-close-import" class="btn-cancel">Cancel</button>
+        </div>
+    </div>
+
+    <script src="language.js"></script>
+    <script src="import_export.js"></script>
+    <script src="popup.js"></script>
 </body>
 
 </html>

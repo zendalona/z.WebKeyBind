@@ -1,7 +1,7 @@
 // =======================================================
 // 1. STATE & VARIABLES
 // =======================================================
-let isCreationMode = false;
+let isTeachMode = false;
 let activeElement = null;
 
 // CONFIGURATION
@@ -15,12 +15,80 @@ function playSound() {
 }
 
 // =======================================================
-// 2. GLOBAL LISTENERS (Mouse & Keyboard Tracking)
+// 2. IMMORTALITY ENGINE (The "Brain")
+// =======================================================
+function generateRobustProfile(element) {
+    return {
+        id: element.id || null,
+        tag: element.tagName.toLowerCase(),
+        text: element.innerText ? element.innerText.trim().substring(0, 50) : null,
+        aria: element.getAttribute('aria-label') || null,
+        title: element.getAttribute('title') || null,
+        testId: element.getAttribute('data-testid') || null, // Crucial for ChatGPT
+        placeholder: element.getAttribute('placeholder') || null,
+        classes: element.className && typeof element.className === 'string' 
+                 ? element.className.split(' ').filter(c => c.length > 4) // Filter short utility classes
+                 : [],
+        path: generateCssPath(element)
+    };
+}
+
+function findElementWithHealing(profile) {
+    let candidate = null;
+    let healed = false;
+
+    // STRATEGY 1: Exact ID
+    if (profile.id) {
+        candidate = document.getElementById(profile.id);
+        if (candidate) return { element: candidate, healed: false };
+    }
+
+    // STRATEGY 2: Test ID (ChatGPT uses this heavily, e.g. "send-button")
+    if (profile.testId) {
+        candidate = document.querySelector(`[data-testid="${profile.testId}"]`);
+        if (candidate) return { element: candidate, healed: true };
+    }
+
+    // STRATEGY 3: Aria Label
+    if (profile.aria) {
+        candidate = document.querySelector(`[aria-label="${profile.aria.replace(/"/g, '\\"')}"]`);
+        if (candidate) return { element: candidate, healed: true };
+    }
+
+    // STRATEGY 4: Text Match
+    if (profile.text) {
+        const xpath = `//${profile.tag}[contains(text(), '${profile.text}')]`;
+        try {
+            const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+            candidate = result.singleNodeValue;
+            if (candidate) return { element: candidate, healed: true };
+        } catch(e) {}
+    }
+
+    // STRATEGY 5: Placeholder (Good for Inputs)
+    if (profile.placeholder) {
+        candidate = document.querySelector(`[placeholder="${profile.placeholder}"]`);
+        if (candidate) return { element: candidate, healed: true };
+    }
+
+    // STRATEGY 6: CSS Path Fallback
+    if (profile.path) {
+        try {
+            candidate = document.querySelector(profile.path);
+            if (candidate) return { element: candidate, healed: true };
+        } catch(e) {}
+    }
+
+    return { element: null, healed: false };
+}
+
+// =======================================================
+// 3. GLOBAL LISTENERS
 // =======================================================
 
 // A. MOUSE TRACKING
 document.addEventListener('mouseover', (e) => {
-    if (!isCreationMode) return;
+    if (!isTeachMode) return;
     const target = getClickableTarget(e.target);
     if (target && target !== activeElement) {
         if (activeElement) removeHighlight(activeElement);
@@ -29,9 +97,9 @@ document.addEventListener('mouseover', (e) => {
     }
 }, true);
 
-// B. KEYBOARD TRACKING (Tab Navigation)
+// B. KEYBOARD TRACKING (Tab)
 document.addEventListener('focus', (e) => {
-    if (!isCreationMode) return;
+    if (!isTeachMode) return;
     const target = getClickableTarget(e.target);
     if (target) {
         if (activeElement) removeHighlight(activeElement);
@@ -42,27 +110,27 @@ document.addEventListener('focus', (e) => {
 }, true);
 
 // =======================================================
-// 3. MASTER KEY LISTENER
+// 4. MASTER KEY LISTENER
 // =======================================================
 window.addEventListener('keydown', (event) => {
     const key = event.key.toUpperCase();
     
-    // Ignore modifier keys alone
     if (['CONTROL', 'SHIFT', 'ALT', 'TAB', 'CAPSLOCK'].includes(key)) return;
 
-    // --- TOGGLE TEACH MODE (Alt + Shift + C) ---
+    // --- TOGGLE TEACH MODE ---
     if (event.altKey && event.shiftKey && key === RESERVED_TOGGLE_KEY) {
         event.preventDefault();
         event.stopImmediatePropagation();
-        toggleCreationMode();
+        toggleTeachMode();
         return;
     }
 
-    // --- MODE 1: TEACH MODE (Assigning New Shortcuts) ---
-    if (isCreationMode) {
-        // Allow A-Z and 0-9
+    // --- MODE 1: TEACH MODE (Assigning) ---
+    if (isTeachMode) {
         if (key.match(/^[A-Z0-9]$/)) {
+            // CRITICAL for ChatGPT: Stop the site from seeing this key press
             event.preventDefault();
+            event.stopPropagation();
             event.stopImmediatePropagation();
             
             if (activeElement) {
@@ -72,26 +140,27 @@ window.addEventListener('keydown', (event) => {
             }
         }
     } 
-    // --- MODE 2: NORMAL MODE (Executing Shortcuts) ---
+    // --- MODE 2: NORMAL MODE (Executing) ---
     else {
-        // Trigger on Alt + Key OR Ctrl + Shift + Key
         if (event.altKey || (event.ctrlKey && event.shiftKey)) { 
+            // Prevent ChatGPT from capturing the shortcut
+            // event.preventDefault(); // Optional: Uncomment if ChatGPT blocks execution
             loadAndRunShortcut(key);
         }
     }
-});
+}, true); // Use Capture Phase (true) to intercept before ChatGPT does
 
 // =======================================================
-// 4. TEACH MODE LOGIC (Renamed)
+// 5. TEACH MODE UI LOGIC
 // =======================================================
-function toggleCreationMode() {
-    isCreationMode = !isCreationMode;
+function toggleTeachMode() {
+    isTeachMode = !isTeachMode;
 
-    if (isCreationMode) {
-        showNotification("🔵 Creation Mode: ON (Press A-Z to assign)", "blue");
+    if (isTeachMode) {
+        showNotification("🔵 Teach Mode: ON (Press A-Z to assign)", "blue");
         document.body.style.cursor = "crosshair";
     } else {
-        showNotification("⚪ Creation Mode: OFF", "grey");
+        showNotification("⚪ Teach Mode: OFF", "grey");
         document.body.style.cursor = "default";
         if (activeElement) removeHighlight(activeElement);
         activeElement = null;
@@ -99,8 +168,6 @@ function toggleCreationMode() {
 }
 
 function addHighlight(el) {
-    // FIX: Only save the original outline if we haven't already.
-    // This prevents overwriting the true original with "Blue" or "Green".
     if (el.dataset.originalOutline === undefined) {
         el.dataset.originalOutline = el.style.outline || "";
     }
@@ -109,7 +176,6 @@ function addHighlight(el) {
 }
 
 function removeHighlight(el) {
-    // Restore the true original outline
     if (el.dataset.originalOutline !== undefined) {
         el.style.outline = el.dataset.originalOutline;
         delete el.dataset.originalOutline;
@@ -118,131 +184,134 @@ function removeHighlight(el) {
     }
 }
 
+// *** UPDATED SELECTOR LOGIC FOR CHATGPT ***
 function getClickableTarget(el) {
     if (!el) return null;
-    return el.closest('button, a, input, select, textarea, [role="button"], [tabindex]:not([tabindex="-1"]), [class*="btn"], [class*="button"]');
+    
+    // 1. Check if the element itself is a text input (ChatGPT Input)
+    if (el.tagName === 'TEXTAREA' || el.getAttribute('contenteditable') === 'true') {
+        return el;
+    }
+
+    // 2. Climb up to find the clickable parent
+    return el.closest(`
+        button, 
+        a, 
+        input, 
+        select, 
+        textarea, 
+        [role="button"], 
+        [tabindex]:not([tabindex="-1"]), 
+        [class*="btn"], 
+        [class*="button"],
+        [data-testid],
+        [contenteditable="true"]
+    `);
 }
 
 // =======================================================
-// 5. SAVING LOGIC (FIXED BORDER REMOVAL)
+// 6. SAVING LOGIC
 // =======================================================
 function saveShortcut(element, key) {
-    if (typeof chrome === "undefined" || !chrome.storage || !chrome.storage.local) {
-        alert("⚠️ Extension context invalidated. Please refresh the page.");
-        return;
-    }
-
-    const selectorDetails = generateSmartSelector(element);
+    if (!chrome?.storage?.local) return;
+    const currentHost = window.location.hostname;
+    const robustProfile = generateRobustProfile(element);
     
-    const uniqueId = Date.now().toString();
-    const data = {
-        id: uniqueId,
-        url: window.location.hostname,
-        name: selectorDetails.name,
-        elementId: selectorDetails.selector,
-        key: key
-    };
+    // Display Name
+    const displayName = robustProfile.text || robustProfile.aria || robustProfile.placeholder || "Element";
 
-    const storageKey = `shortcut_${uniqueId}`;
-    
-    try {
+    chrome.storage.local.get(null, (items) => {
+        // Overwrite check
+        const existingId = Object.keys(items).find(id => {
+            const item = items[id];
+            return item.key === key && item.url === currentHost;
+        });
+
+        if (existingId) chrome.storage.local.remove(existingId);
+
+        const uniqueId = Date.now().toString();
+        const data = {
+            id: uniqueId,
+            url: currentHost,
+            name: displayName,
+            profile: robustProfile,
+            key: key
+        };
+
+        const storageKey = `shortcut_${uniqueId}`;
         chrome.storage.local.set({ [storageKey]: data }, () => {
             if (chrome.runtime.lastError) return;
-
             playSound();
-            
-            // Turn GREEN immediately
-            element.style.outline = "4px solid #00E676"; 
+            element.style.outline = "4px solid #00E676"; // Green
             showNotification(`✅ Shortcut 'Alt+${key}' saved!`, "green");
 
             setTimeout(() => {
-                // FIXED LOGIC:
-                // 1. If we are still in Teach Mode AND hovering this element -> Go back to BLUE
-                if (isCreationMode && activeElement === element) {
+                if (isTeachMode && activeElement === element) {
                      element.style.outline = "4px solid #2196F3"; 
-                } 
-                // 2. Otherwise -> Completely REMOVE border (Restore original)
-                else {
+                } else {
                     removeHighlight(element);
                 }
             }, 1000);
         });
-    } catch (e) {
-        console.error(e);
-        showNotification("❌ Error: Extension disconnected.", "red");
-    }
-}
-
-function generateSmartSelector(element) {
-    let selector = "";
-    let name = (element.innerText || "Element").substring(0, 20).trim();
-
-    if (element.id && element.id.length < 30 && !/\d{5}/.test(element.id)) {
-        selector = `#${CSS.escape(element.id)}`;
-    } else if (element.getAttribute('aria-label')) {
-        selector = `[aria-label="${element.getAttribute('aria-label').replace(/"/g, '\\"')}"]`;
-        name = element.getAttribute('aria-label');
-    } else if (element.getAttribute('data-testid')) {
-         selector = `[data-testid="${element.getAttribute('data-testid')}"]`;
-    } else if (element.innerText && element.innerText.trim().length > 0 && element.innerText.trim().length < 30) {
-        selector = `text:${element.innerText.trim()}`;
-    } else {
-        selector = generateCssPath(element);
-    }
-    return { selector, name };
+    });
 }
 
 // =======================================================
-// 6. EXECUTION LOGIC
+// 7. EXECUTION LOGIC
 // =======================================================
 function loadAndRunShortcut(pressedKey) {
     if (!chrome?.storage?.local) return;
 
     chrome.storage.local.get(null, (items) => {
         if (chrome.runtime.lastError) return;
-
         const currentHost = window.location.hostname;
+        
         const match = Object.values(items).find(s => 
             s.key === pressedKey && (currentHost.includes(s.url) || s.url === "<URL>")
         );
 
         if (match) {
-            executeShortcut(match);
+            let result = { element: null, healed: false };
+
+            if (match.profile) {
+                result = findElementWithHealing(match.profile);
+            } 
+            
+            if (result.element) {
+                executeShortcut(result.element);
+                if (result.healed) {
+                    // Update profile automatically
+                    match.profile = generateRobustProfile(result.element);
+                    chrome.storage.local.set({ [`shortcut_${match.id}`]: match });
+                    console.log("[WebKeyBind] Healed shortcut.");
+                }
+            } else {
+                showNotification(`❌ Missing: ${match.name}`, "red");
+            }
         }
     });
 }
 
-function executeShortcut(shortcut) {
-    let element = findElementBySelector(shortcut.elementId);
-
-    if (element) {
-        const originalBg = element.style.backgroundColor;
-        const originalTransition = element.style.transition;
-        
-        element.style.transition = "all 0.1s";
-        element.style.backgroundColor = "rgba(124, 77, 255, 0.5)"; 
-        element.focus();
-        
-        triggerDeepClick(element);
-
-        setTimeout(() => { 
-            element.style.backgroundColor = originalBg; 
-            element.style.transition = originalTransition;
-        }, 300);
+function executeShortcut(element) {
+    const originalBg = element.style.backgroundColor;
+    const originalTransition = element.style.transition;
+    
+    // Visual Feedback
+    element.style.transition = "all 0.1s";
+    element.style.backgroundColor = "rgba(124, 77, 255, 0.5)"; 
+    element.focus(); // Focus first!
+    
+    // Special handling for ChatGPT Inputs
+    if (element.tagName === 'TEXTAREA' || element.getAttribute('contenteditable') === 'true') {
+        // Just focus it, don't click it (clicking might reset cursor)
     } else {
-        showNotification(`❌ Missing: ${shortcut.name}`, "red");
+        triggerDeepClick(element);
     }
-}
 
-function findElementBySelector(selector) {
-    if (selector.startsWith('text:')) {
-        const text = selector.replace('text:', '');
-        const xpath = `//*[text()='${text}' or contains(text(), '${text}')]`;
-        try {
-            return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
-        } catch (e) { return null; }
-    }
-    try { return document.querySelector(selector); } catch { return null; }
+    setTimeout(() => { 
+        element.style.backgroundColor = originalBg; 
+        element.style.transition = originalTransition;
+    }, 300);
 }
 
 function triggerDeepClick(element) {
@@ -259,7 +328,7 @@ function triggerDeepClick(element) {
 }
 
 // =======================================================
-// 7. UTILITIES
+// 8. UTILITIES
 // =======================================================
 function generateCssPath(el) {
     if (!(el instanceof Element)) return;
