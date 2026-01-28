@@ -3,59 +3,98 @@
 // =======================================================
 let isTeachMode = false;
 let activeElement = null;
+const RESERVED_TOGGLE_KEY = "C"; // Alt + Shift + C
 
-// CONFIGURATION
-const RESERVED_TOGGLE_KEY = "C"; // Alt + Shift + C to toggle
+// =======================================================
+// 2. ACCESSIBILITY (Announcer & Notifications)
+// =======================================================
+const srAnnouncer = document.createElement('div');
+srAnnouncer.id = "webkeybind-announcer";
+srAnnouncer.setAttribute('aria-live', 'assertive');
+srAnnouncer.setAttribute('aria-atomic', 'true');
+srAnnouncer.style.cssText = 'position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0);';
+document.body.appendChild(srAnnouncer);
 
-// Safe Audio Feedback
-const successSound = new Audio('https://actions.google.com/sounds/v1/cartoon/pop.ogg');
-function playSound() {
-    successSound.currentTime = 0;
-    successSound.play().catch(e => console.warn("Audio blocked by browser policy"));
+function announceToScreenReader(message, color = "default") {
+    // 1. Show Visual Notification
+    showNotification(message, color);
+    
+    // 2. Speak to Screen Reader
+    srAnnouncer.textContent = '';
+    setTimeout(() => { srAnnouncer.textContent = message; }, 50);
+}
+
+function showNotification(msg, colorType) {
+    const existing = document.getElementById('webkeybind-notification');
+    if (existing) existing.remove();
+
+    const div = document.createElement('div');
+    div.id = 'webkeybind-notification';
+    div.innerText = msg;
+    div.setAttribute('aria-hidden', 'true'); 
+    
+    // --- COLOR LOGIC ---
+    let bgColor = "#333333"; 
+    if (colorType === "blue") bgColor = "#007BFF"; // Teach Mode ON
+    if (colorType === "red")  bgColor = "#DC3545"; // Teach Mode OFF
+    if (colorType === "green") bgColor = "#28A745"; // Saved
+
+    div.style.cssText = `
+        position: fixed !important; 
+        top: 20px !important; 
+        left: 50% !important; 
+        transform: translateX(-50%) !important;
+        background-color: ${bgColor} !important; 
+        color: white !important; 
+        padding: 12px 24px !important; 
+        border-radius: 8px !important;
+        z-index: 2147483647 !important; 
+        font-family: sans-serif !important; 
+        font-weight: bold !important;
+        font-size: 16px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+        transition: opacity 0.3s ease-in-out !important;
+    `;
+    
+    document.body.appendChild(div);
+
+    setTimeout(() => {
+        if(div) {
+            div.style.opacity = "0";
+            setTimeout(() => div.remove(), 300);
+        }
+    }, 4000);
 }
 
 // =======================================================
-// 2. IMMORTALITY ENGINE (The "Brain")
+// 3. IMMORTALITY ENGINE
 // =======================================================
 function generateRobustProfile(element) {
+    if (!element) return null;
     return {
         id: element.id || null,
         tag: element.tagName.toLowerCase(),
         text: element.innerText ? element.innerText.trim().substring(0, 50) : null,
         aria: element.getAttribute('aria-label') || null,
-        title: element.getAttribute('title') || null,
-        testId: element.getAttribute('data-testid') || null, // Crucial for ChatGPT
-        placeholder: element.getAttribute('placeholder') || null,
-        classes: element.className && typeof element.className === 'string' 
-                 ? element.className.split(' ').filter(c => c.length > 4) // Filter short utility classes
-                 : [],
+        testId: element.getAttribute('data-testid') || null,
         path: generateCssPath(element)
     };
 }
 
 function findElementWithHealing(profile) {
     let candidate = null;
-    let healed = false;
-
-    // STRATEGY 1: Exact ID
     if (profile.id) {
         candidate = document.getElementById(profile.id);
         if (candidate) return { element: candidate, healed: false };
     }
-
-    // STRATEGY 2: Test ID (ChatGPT uses this heavily, e.g. "send-button")
     if (profile.testId) {
         candidate = document.querySelector(`[data-testid="${profile.testId}"]`);
         if (candidate) return { element: candidate, healed: true };
     }
-
-    // STRATEGY 3: Aria Label
     if (profile.aria) {
         candidate = document.querySelector(`[aria-label="${profile.aria.replace(/"/g, '\\"')}"]`);
         if (candidate) return { element: candidate, healed: true };
     }
-
-    // STRATEGY 4: Text Match
     if (profile.text) {
         const xpath = `//${profile.tag}[contains(text(), '${profile.text}')]`;
         try {
@@ -64,29 +103,18 @@ function findElementWithHealing(profile) {
             if (candidate) return { element: candidate, healed: true };
         } catch(e) {}
     }
-
-    // STRATEGY 5: Placeholder (Good for Inputs)
-    if (profile.placeholder) {
-        candidate = document.querySelector(`[placeholder="${profile.placeholder}"]`);
-        if (candidate) return { element: candidate, healed: true };
-    }
-
-    // STRATEGY 6: CSS Path Fallback
     if (profile.path) {
         try {
             candidate = document.querySelector(profile.path);
             if (candidate) return { element: candidate, healed: true };
         } catch(e) {}
     }
-
     return { element: null, healed: false };
 }
 
 // =======================================================
-// 3. GLOBAL LISTENERS
+// 4. LISTENERS
 // =======================================================
-
-// A. MOUSE TRACKING
 document.addEventListener('mouseover', (e) => {
     if (!isTeachMode) return;
     const target = getClickableTarget(e.target);
@@ -97,7 +125,6 @@ document.addEventListener('mouseover', (e) => {
     }
 }, true);
 
-// B. KEYBOARD TRACKING (Tab)
 document.addEventListener('focus', (e) => {
     if (!isTeachMode) return;
     const target = getClickableTarget(e.target);
@@ -105,19 +132,13 @@ document.addEventListener('focus', (e) => {
         if (activeElement) removeHighlight(activeElement);
         activeElement = target;
         addHighlight(activeElement);
-        target.scrollIntoView({ behavior: "smooth", block: "center" });
     }
 }, true);
 
-// =======================================================
-// 4. MASTER KEY LISTENER
-// =======================================================
 window.addEventListener('keydown', (event) => {
     const key = event.key.toUpperCase();
-    
     if (['CONTROL', 'SHIFT', 'ALT', 'TAB', 'CAPSLOCK'].includes(key)) return;
 
-    // --- TOGGLE TEACH MODE ---
     if (event.altKey && event.shiftKey && key === RESERVED_TOGGLE_KEY) {
         event.preventDefault();
         event.stopImmediatePropagation();
@@ -125,53 +146,132 @@ window.addEventListener('keydown', (event) => {
         return;
     }
 
-    // --- MODE 1: TEACH MODE (Assigning) ---
     if (isTeachMode) {
         if (key.match(/^[A-Z0-9]$/)) {
-            // CRITICAL for ChatGPT: Stop the site from seeing this key press
             event.preventDefault();
-            event.stopPropagation();
             event.stopImmediatePropagation();
             
-            if (activeElement) {
-                saveShortcut(activeElement, key);
+            let targetToSave = getClickableTarget(document.activeElement);
+            if (!targetToSave) targetToSave = activeElement;
+
+            if (targetToSave) {
+                saveShortcut(targetToSave, key);
             } else {
-                showNotification("⚠️ Hover over an element first!", "orange");
+                announceToScreenReader("No element selected. Tab to a button.", "red");
             }
         }
-    } 
-    // --- MODE 2: NORMAL MODE (Executing) ---
-    else {
+    } else {
         if (event.altKey || (event.ctrlKey && event.shiftKey)) { 
-            // Prevent ChatGPT from capturing the shortcut
-            // event.preventDefault(); // Optional: Uncomment if ChatGPT blocks execution
             loadAndRunShortcut(key);
         }
     }
-}, true); // Use Capture Phase (true) to intercept before ChatGPT does
+}, true);
 
 // =======================================================
-// 5. TEACH MODE UI LOGIC
+// 5. HELPER FUNCTIONS
 // =======================================================
 function toggleTeachMode() {
     isTeachMode = !isTeachMode;
-
     if (isTeachMode) {
-        showNotification("🔵 Teach Mode: ON (Press A-Z to assign)", "blue");
+        document.body.setAttribute('role', 'application'); 
+        announceToScreenReader("Teach Mode ON. Navigation disabled. Select a button and press a Key", "blue");
         document.body.style.cursor = "crosshair";
     } else {
-        showNotification("⚪ Teach Mode: OFF", "grey");
+        document.body.removeAttribute('role');
+        announceToScreenReader("Teach Mode OFF. Navigation restored.", "red");
         document.body.style.cursor = "default";
         if (activeElement) removeHighlight(activeElement);
         activeElement = null;
     }
 }
 
-function addHighlight(el) {
-    if (el.dataset.originalOutline === undefined) {
-        el.dataset.originalOutline = el.style.outline || "";
+function getClickableTarget(el) {
+    if (!el || el === document.body) return null;
+    if (el.tagName === 'TEXTAREA' || el.getAttribute('contenteditable') === 'true') return el;
+    return el.closest('button, a, input, select, textarea, [role="button"], [role="link"], [role="menuitem"], [role="checkbox"], [tabindex]:not([tabindex="-1"]), [class*="btn"], [data-testid]');
+}
+
+function saveShortcut(element, key) {
+    if (!chrome?.storage?.local) {
+        announceToScreenReader("Error: Reload Page.", "red");
+        return;
     }
-    el.style.outline = "4px solid #2196F3"; // Blue
+
+    const currentHost = window.location.hostname;
+    const robustProfile = generateRobustProfile(element);
+    let displayName = robustProfile.aria || robustProfile.text || "Element";
+    
+    // Create a simple ID string for the Popup Window to display
+    let simpleIdDisplay = robustProfile.id ? `#${robustProfile.id}` : (robustProfile.text || robustProfile.path);
+
+    chrome.storage.local.get(null, (items) => {
+        const existingId = Object.keys(items).find(id => {
+            const item = items[id];
+            return item.key === key && item.url === currentHost;
+        });
+        if (existingId) chrome.storage.local.remove(existingId);
+
+        const uniqueId = Date.now().toString();
+        const data = {
+            id: uniqueId,
+            url: currentHost,
+            name: displayName,
+            profile: robustProfile,
+            elementId: simpleIdDisplay, // <--- FIXED: ADDED THIS LINE SO POPUP SHOWS THE ID
+            key: key
+        };
+
+        const storageKey = `shortcut_${uniqueId}`;
+        chrome.storage.local.set({ [storageKey]: data }, () => {
+            if (chrome.runtime.lastError) return;
+            element.style.outline = "4px solid #00E676"; 
+            announceToScreenReader(`Saved shortcut ${key}`, "green");
+
+            setTimeout(() => {
+                if (isTeachMode && activeElement === element) element.style.outline = "4px solid #2196F3"; 
+                else removeHighlight(element);
+            }, 1000);
+        });
+    });
+}
+
+function loadAndRunShortcut(pressedKey) {
+    chrome.storage.local.get(null, (items) => {
+        const currentHost = window.location.hostname;
+        const match = Object.values(items).find(s => s.key === pressedKey && (currentHost.includes(s.url) || s.url === "<URL>"));
+
+        if (match) {
+            let result = { element: null, healed: false };
+            if (match.profile) result = findElementWithHealing(match.profile);
+            else result.element = findElementBySelector(match.elementId); // Backward compatibility
+            
+            if (result.element) {
+                result.element.focus();
+                ['mousedown', 'mouseup', 'click'].forEach(eventType => {
+                    result.element.dispatchEvent(new MouseEvent(eventType, { view: window, bubbles: true, cancelable: true, buttons: 1 }));
+                });
+                
+                if (result.healed) {
+                    match.profile = generateRobustProfile(result.element);
+                    // Update elementId too so the popup updates
+                    match.elementId = match.profile.id ? `#${match.profile.id}` : (match.profile.text || match.profile.path);
+                    chrome.storage.local.set({ [`shortcut_${match.id}`]: match });
+                }
+            } else {
+                announceToScreenReader("Element not found.", "red");
+            }
+        }
+    });
+}
+
+// Fallback for old saved shortcuts that don't have a profile yet
+function findElementBySelector(selector) {
+    try { return document.querySelector(selector); } catch { return null; }
+}
+
+function addHighlight(el) {
+    if (el.dataset.originalOutline === undefined) el.dataset.originalOutline = el.style.outline || "";
+    el.style.outline = "4px solid #2196F3";
     el.style.outlineOffset = "2px";
 }
 
@@ -184,184 +284,19 @@ function removeHighlight(el) {
     }
 }
 
-// *** UPDATED SELECTOR LOGIC FOR CHATGPT ***
-function getClickableTarget(el) {
-    if (!el) return null;
-    
-    // 1. Check if the element itself is a text input (ChatGPT Input)
-    if (el.tagName === 'TEXTAREA' || el.getAttribute('contenteditable') === 'true') {
-        return el;
-    }
-
-    // 2. Climb up to find the clickable parent
-    return el.closest(`
-        button, 
-        a, 
-        input, 
-        select, 
-        textarea, 
-        [role="button"], 
-        [tabindex]:not([tabindex="-1"]), 
-        [class*="btn"], 
-        [class*="button"],
-        [data-testid],
-        [contenteditable="true"]
-    `);
-}
-
-// =======================================================
-// 6. SAVING LOGIC
-// =======================================================
-function saveShortcut(element, key) {
-    if (!chrome?.storage?.local) return;
-    const currentHost = window.location.hostname;
-    const robustProfile = generateRobustProfile(element);
-    
-    // Display Name
-    const displayName = robustProfile.text || robustProfile.aria || robustProfile.placeholder || "Element";
-
-    chrome.storage.local.get(null, (items) => {
-        // Overwrite check
-        const existingId = Object.keys(items).find(id => {
-            const item = items[id];
-            return item.key === key && item.url === currentHost;
-        });
-
-        if (existingId) chrome.storage.local.remove(existingId);
-
-        const uniqueId = Date.now().toString();
-        const data = {
-            id: uniqueId,
-            url: currentHost,
-            name: displayName,
-            profile: robustProfile,
-            key: key
-        };
-
-        const storageKey = `shortcut_${uniqueId}`;
-        chrome.storage.local.set({ [storageKey]: data }, () => {
-            if (chrome.runtime.lastError) return;
-            playSound();
-            element.style.outline = "4px solid #00E676"; // Green
-            showNotification(`✅ Shortcut 'Alt+${key}' saved!`, "green");
-
-            setTimeout(() => {
-                if (isTeachMode && activeElement === element) {
-                     element.style.outline = "4px solid #2196F3"; 
-                } else {
-                    removeHighlight(element);
-                }
-            }, 1000);
-        });
-    });
-}
-
-// =======================================================
-// 7. EXECUTION LOGIC
-// =======================================================
-function loadAndRunShortcut(pressedKey) {
-    if (!chrome?.storage?.local) return;
-
-    chrome.storage.local.get(null, (items) => {
-        if (chrome.runtime.lastError) return;
-        const currentHost = window.location.hostname;
-        
-        const match = Object.values(items).find(s => 
-            s.key === pressedKey && (currentHost.includes(s.url) || s.url === "<URL>")
-        );
-
-        if (match) {
-            let result = { element: null, healed: false };
-
-            if (match.profile) {
-                result = findElementWithHealing(match.profile);
-            } 
-            
-            if (result.element) {
-                executeShortcut(result.element);
-                if (result.healed) {
-                    // Update profile automatically
-                    match.profile = generateRobustProfile(result.element);
-                    chrome.storage.local.set({ [`shortcut_${match.id}`]: match });
-                    console.log("[WebKeyBind] Healed shortcut.");
-                }
-            } else {
-                showNotification(`❌ Missing: ${match.name}`, "red");
-            }
-        }
-    });
-}
-
-function executeShortcut(element) {
-    const originalBg = element.style.backgroundColor;
-    const originalTransition = element.style.transition;
-    
-    // Visual Feedback
-    element.style.transition = "all 0.1s";
-    element.style.backgroundColor = "rgba(124, 77, 255, 0.5)"; 
-    element.focus(); // Focus first!
-    
-    // Special handling for ChatGPT Inputs
-    if (element.tagName === 'TEXTAREA' || element.getAttribute('contenteditable') === 'true') {
-        // Just focus it, don't click it (clicking might reset cursor)
-    } else {
-        triggerDeepClick(element);
-    }
-
-    setTimeout(() => { 
-        element.style.backgroundColor = originalBg; 
-        element.style.transition = originalTransition;
-    }, 300);
-}
-
-function triggerDeepClick(element) {
-    const events = ['mousedown', 'mouseup', 'click'];
-    events.forEach(eventType => {
-        const event = new MouseEvent(eventType, {
-            view: window,
-            bubbles: true,
-            cancelable: true,
-            buttons: 1
-        });
-        element.dispatchEvent(event);
-    });
-}
-
-// =======================================================
-// 8. UTILITIES
-// =======================================================
 function generateCssPath(el) {
     if (!(el instanceof Element)) return;
     const path = [];
     while (el.nodeType === Node.ELEMENT_NODE) {
         let selector = el.nodeName.toLowerCase();
-        if (el.id && !/\d/.test(el.id)) {
-            selector += '#' + CSS.escape(el.id);
-            path.unshift(selector);
-            break;
-        } else {
+        if (el.id && !/\d/.test(el.id)) { selector += '#' + CSS.escape(el.id); path.unshift(selector); break; }
+        else {
             let sib = el, nth = 1;
-            while (sib = sib.previousElementSibling) {
-                if (sib.nodeName.toLowerCase() === selector) nth++;
-            }
+            while (sib = sib.previousElementSibling) { if (sib.nodeName.toLowerCase() === selector) nth++; }
             if (nth !== 1) selector += `:nth-of-type(${nth})`;
         }
         path.unshift(selector);
         el = el.parentNode;
     }
     return path.join(" > ");
-}
-
-function showNotification(msg, color = "#333") {
-    const div = document.createElement('div');
-    div.innerText = msg;
-    div.style.cssText = `
-        position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
-        background: ${color === "blue" ? "#2196F3" : color === "green" ? "#00E676" : color === "red" ? "#D32F2F" : "#333"};
-        color: white; padding: 12px 24px; border-radius: 8px;
-        z-index: 2147483647; font-family: sans-serif; font-weight: bold;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    `;
-    document.body.appendChild(div);
-    setTimeout(() => div.remove(), 3000);
 }
