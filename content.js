@@ -5,6 +5,7 @@ let currentMode = null;
 let activeHoverElement = null; 
 let lastInteractionType = 'mouse'; 
 let isSaving = false; 
+let isLocked = false;
 
 // =======================================================
 // 2. ACCESSIBILITY ENGINE
@@ -73,6 +74,7 @@ function isInputActive() {
 // A. MOUSE LISTENER
 document.addEventListener('mouseover', (e) => {
     // Only active in 'mouse' or 'creation' modes
+    if (isLocked) return;
     if (currentMode !== 'mouse' && currentMode !== 'creation') return; 
     
     lastInteractionType = 'mouse';
@@ -108,7 +110,8 @@ window.addEventListener('keydown', (event) => {
         if (key === 'S') { event.preventDefault(); event.stopImmediatePropagation(); return;}
         if (key === 'M') { event.preventDefault(); event.stopImmediatePropagation(); switchMode('mouse'); return; }
         if (key === 'K') { event.preventDefault(); event.stopImmediatePropagation(); switchMode('keyboard'); return; }
-        if (key === 'A') { event.preventDefault(); event.stopImmediatePropagation(); switchMode('creation'); return; }
+        if (key === 'C') { event.preventDefault(); event.stopImmediatePropagation(); switchMode('creation'); return; }
+        if (key === 'A') { event.preventDefault(); event.stopImmediatePropagation(); readAllShortcuts();return; }
     }
 
     if (isInputActive()) return;
@@ -134,7 +137,22 @@ window.addEventListener('keydown', (event) => {
         }
     }
 }, true);
+document.addEventListener('click', (e) => {
+    if (currentMode !== 'mouse' && currentMode !== 'creation') return;
 
+    const target = getClickableTarget(e.target);
+    if (target) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+
+        isLocked = true; // Lock the focus
+        updateHighlight(target);
+        
+        // Visual feedback: Orange outline for "Locked/Selected"
+        target.style.outline = "4px solid #FF9800"; 
+        announceToScreenReader("Button selected. Press a key to save shortcut.", "orange");
+    }
+}, true);
 // =======================================================
 // 4. HIGHLIGHT ENGINE
 // =======================================================
@@ -178,6 +196,7 @@ function removeHighlight(el) {
 // 5. MODE SWITCHING (FIXED NAMES)
 // =======================================================
 function switchMode(newMode) {
+    isLocked = false;
     // 1. Turning OFF?
     if (currentMode === newMode) {
         let modeName = "Teach Mode";
@@ -198,11 +217,9 @@ function switchMode(newMode) {
     currentMode = newMode;
     document.body.setAttribute('role', 'application'); 
 
-    // Reset interaction type based on mode
     if (newMode === 'mouse') lastInteractionType = 'mouse';
     if (newMode === 'keyboard') lastInteractionType = 'keyboard';
-    
-    // Refresh highlight immediately
+
     if (newMode === 'mouse' && activeHoverElement) updateHighlight(activeHoverElement);
     if (newMode === 'keyboard') {
         const focused = getClickableTarget(document.activeElement);
@@ -222,36 +239,66 @@ function getClickableTarget(el) {
 
 function saveShortcut(element, key) {
     if (!chrome?.storage?.local) return;
-    
-    isSaving = true;
     const currentHost = window.location.hostname;
-    const robustProfile = generateRobustProfile(element);
-    let displayName = robustProfile.aria || robustProfile.text || "Element";
-    let simpleIdDisplay = robustProfile.id ? `#${robustProfile.id}` : (robustProfile.text || robustProfile.path);
+    const profile = generateRobustProfile(element);
+    
+    // 1. Define a name for the element globally within this function scope
+    const currentElementName = profile.aria || profile.text || "Element";
 
     chrome.storage.local.get(null, (items) => {
+        const userLang = items.ui_language || "English";
+
+        // Conflict Check
+        const conflict = Object.values(items).find(item => 
+            item.key === key && 
+            item.url === currentHost && 
+            item.profile?.path !== profile.path
+        );
+
+        if (conflict) {
+            isLocked = false;
+            const existingBtnName = conflict.name || "another button";
+            
+            const msgs = {
+                "English": `Please use another Key. This key '${key}' is already used for '${existingBtnName}'.`,
+                "हिंदी": `कृपया दूसरी कुंजी का उपयोग करें। यह कुंजी '${key}' पहले से ही '${existingBtnName}' के लिए उपयोग की गई है।`,
+                "मराठी": `कृपया दुसरी कळ वापरा. ही कळ '${key}' आधीच '${existingBtnName}' साठी वापरली गेली आहे।`,
+                "മലയാളം": `ദയവായി മറ്റൊരു കീ ഉപയോഗിക്കുക. ഈ കീ '${key}' ഇതിനകം '${existingBtnName}' എന്നതിനായി ഉപയോഗിച്ചു.`
+            };
+
+            announceToScreenReader(msgs[userLang] || msgs["English"], "red");
+            element.style.outline = "4px solid #DC3545"; 
+            setTimeout(() => { if(currentMode) addHighlight(element); }, 1000);
+            return; 
+        }
+
+        // 2. SAVE LOGIC
+        isSaving = true;
+        let simpleId = profile.id ? `#${profile.id}` : (profile.text || profile.path);
+
         const existingId = Object.keys(items).find(id => items[id].key === key && items[id].url === currentHost);
         if (existingId) chrome.storage.local.remove(existingId);
 
         const uniqueId = Date.now().toString();
-        const data = { id: uniqueId, url: currentHost, name: displayName, profile: robustProfile, elementId: simpleIdDisplay, key: key };
+        // Use currentElementName here
+        const data = { id: uniqueId, url: currentHost, name: currentElementName, profile: profile, elementId: simpleId, key: key };
 
         chrome.storage.local.set({ [`shortcut_${uniqueId}`]: data }, () => {
             isSaving = false;
-            if (chrome.runtime.lastError) return;
+            isLocked = false;
             
-            // Visual feedback (Green)
+            // Fixed the variable name here to currentElementName
+            announceToScreenReader(`Saved shortcut for ${currentElementName} is Alt + ${key}`, "green");
+            
             element.style.outline = "4px solid #00E676"; 
-            announceToScreenReader(`Saved shortcut ${key}`, "green");
-            
             setTimeout(() => {
-                // Restore selection color if we are still in a mode
                 if(currentMode) addHighlight(element); 
                 else removeHighlight(element);
             }, 1000);
         });
     });
 }
+
 
 function loadAndRunShortcut(pressedKey) {
     if (!chrome?.storage?.local) return;
@@ -319,6 +366,29 @@ function generateRobustProfile(element) {
 function findElementBySelector(selector) { try { return document.querySelector(selector); } catch { return null; } }
 function generateCssPath(el) { if (!(el instanceof Element)) return; const path = []; while (el.nodeType === Node.ELEMENT_NODE) { let selector = el.nodeName.toLowerCase(); if (el.id && !/\d/.test(el.id)) { selector += '#' + CSS.escape(el.id); path.unshift(selector); break; } else { let sib = el, nth = 1; while (sib = sib.previousElementSibling) { if (sib.nodeName.toLowerCase() === selector) nth++; } if (nth !== 1) selector += `:nth-of-type(${nth})`; } path.unshift(selector); el = el.parentNode; } return path.join(" > "); }
 
+// =======================================================
+// 7. AUDIO READER (Alt + Shift + A Logic)
+// =======================================================
+function readAllShortcuts() {
+    if (!chrome?.storage?.local) return;
+    const currentHost = window.location.hostname;
+    chrome.storage.local.get(null, (items) => {
+        // Filter shortcuts for THIS specific website
+        const siteShortcuts = Object.values(items).filter(s =>
+            s.key && (currentHost.includes(s.url) || s.url === "<URL>")
+        );
+        if (siteShortcuts.length === 0) {
+            announceToScreenReader("No shortcuts saved for this page.");
+        } else {
+            const spokenText = siteShortcuts
+                .map(s => `Alt ${s.key} is for ${s.name}`)
+                .join(". ");
+ 
+            announceToScreenReader(`Found ${siteShortcuts.length} shortcuts. ${spokenText}`);
+        }
+    });
+}
+ 
 let isExtensionWindowOpen = false;
 chrome.runtime.onConnect.addListener((port) => {
     if (port.name === "z-webkeybind-popup") {
