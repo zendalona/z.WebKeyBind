@@ -105,9 +105,10 @@ window.addEventListener('keydown', (event) => {
 
     // GLOBAL SHORTCUTS
     if (event.altKey && event.shiftKey) {
+        if (key === 'S') { event.preventDefault(); event.stopImmediatePropagation(); return;}
         if (key === 'M') { event.preventDefault(); event.stopImmediatePropagation(); switchMode('mouse'); return; }
         if (key === 'K') { event.preventDefault(); event.stopImmediatePropagation(); switchMode('keyboard'); return; }
-        if (key === 'C') { event.preventDefault(); event.stopImmediatePropagation(); switchMode('creation'); return; }
+        if (key === 'A') { event.preventDefault(); event.stopImmediatePropagation(); switchMode('creation'); return; }
     }
 
     if (isInputActive()) return;
@@ -317,3 +318,18 @@ function generateRobustProfile(element) {
 }
 function findElementBySelector(selector) { try { return document.querySelector(selector); } catch { return null; } }
 function generateCssPath(el) { if (!(el instanceof Element)) return; const path = []; while (el.nodeType === Node.ELEMENT_NODE) { let selector = el.nodeName.toLowerCase(); if (el.id && !/\d/.test(el.id)) { selector += '#' + CSS.escape(el.id); path.unshift(selector); break; } else { let sib = el, nth = 1; while (sib = sib.previousElementSibling) { if (sib.nodeName.toLowerCase() === selector) nth++; } if (nth !== 1) selector += `:nth-of-type(${nth})`; } path.unshift(selector); el = el.parentNode; } return path.join(" > "); }
+
+let isExtensionWindowOpen = false;
+chrome.runtime.onConnect.addListener((port) => {
+    if (port.name === "z-webkeybind-popup") {
+        isExtensionWindowOpen = true;
+        announceToScreenReader("setting window for z.WebkeyBind is open", "blue");
+        port.onDisconnect.addListener(() => {
+            isExtensionWindowOpen = false;
+            announceToScreenReader("setting window for z.WebkeyBind is closed", "red");
+            currentMode = null;
+            updateHighlight(null);
+            document.body.style.cursor = "default";
+        });
+    }
+});

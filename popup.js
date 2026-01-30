@@ -5,6 +5,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const showAllBtn = document.querySelector('.btn-show-all');
     const deleteAllBtn = document.querySelector('.btn-delete-all');
 
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+            chrome.tabs.sendMessage(tabs[0].id, { action: "z-webkeybind-popup"});
+        }
+    });
+    setTimeout(() => {
+        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+            if (tabs[0]?.id) {
+                chrome.tabs.sendMessage(tabs[0].id, { action: "settings_opened" });
+            }
+        });
+    }, 150); // Wait for popup focus to settle
+
     // --- GLOBAL STATE (Attached to window so other files can see it) ---
     window.currentSiteHostname = "";
     let isShowingAll = false;
