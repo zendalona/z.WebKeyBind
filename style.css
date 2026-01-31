@@ -155,28 +155,34 @@ body {
 }
 
 .import-export-dropdown {
-    display: none; /* JS toggles this */
+    display: none;
     position: absolute;
     top: calc(100% + 10px);
     right: 0;
     background: white;
-    width: 260px;
-    padding: 15px;
+    width: 200px;
+    padding: 25px 15px 15px 15px;
     border-radius: 12px;
-    box-shadow: 0 15px 35px rgba(0,0,0,0.15);
-    z-index: 1001; /* Floats above everything */
-    border: 1px solid #e2e8f0;
-    animation: fadeIn 0.2s ease-in-out;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+    z-index: 101;
+    border: 1px solid #f0f0f0;
+}
+
+.menu-container:focus-within .import-export-dropdown {
+    display: block;
 }
 
 .close-menu {
-    position: absolute;
-    top: 10px;
-    right: 15px;
-    color: #999;
-    font-size: 20px;
+    position: absolute; 
+    top: 8px;           
+    right: 10px;        
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    color: #e0e0e0;
     cursor: pointer;
-    transition: color 0.2s;
+    line-height: 1;
+    padding: 0;
 }
 
 .close-menu:hover {
@@ -184,18 +190,17 @@ body {
 }
 
 .menu-btn {
-    width: 100%;
-    background-color: #fff;
-    border: 1px solid #e2e8f0;
+    width: 90%;
+    background-color: #f4f6f8;
+    border: 1px solid #8e9aaf;
     color: #4a5568;
-    padding: 12px;
-    margin-bottom: 8px;
+    padding: 10px;
+    margin-bottom: 12px;
     border-radius: 8px;
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 500;
     cursor: pointer;
-    text-align: left;
-    transition: all 0.2s;
+    transition: 0.2s;
 }
 
 .menu-btn:hover {

@@ -18,7 +18,8 @@ window.translations = {
         p_key: "Key",
         no_shortcuts: "No shortcuts found for",
         delete_confirm: "Delete this shortcut?",
-        delete_all_confirm: "Delete all visible shortcuts?"
+        delete_all_confirm: "Delete all visible shortcuts?",
+        conflictMsg: "Please use another Key. This key '{key}' is already used for '{button}'."
     },
     हिंदी: {
         settingsTitle: "z.WebKeyBind सेटिंग्स",
@@ -38,7 +39,9 @@ window.translations = {
         p_key: "कूंजी",
         no_shortcuts: "इसके लिए कोई शॉर्टकट नहीं मिला:",
         delete_confirm: "क्या आप इस शॉर्टकट को हटाना चाहते हैं?",
-        delete_all_confirm: "क्या आप सभी दिखाई देने वाले शॉर्टकट हटाना चाहते हैं?"
+        delete_all_confirm: "क्या आप सभी दिखाई देने वाले शॉर्टकट हटाना चाहते हैं?",
+        conflictMsg: "कृपया दूसरी कुंजी का उपयोग करें। यह कुंजी '{key}' पहले से ही '{button}' के लिए उपयोग की गई है।"
+
     },
     मराठी: {
         settingsTitle: "z.WebKeyBind सेटिंग्स",
@@ -58,7 +61,8 @@ window.translations = {
         p_key: "कळ (Key)",
         no_shortcuts: "यासाठी शॉर्टकट सापडले नाहीत:",
         delete_confirm: "हा शॉर्टकट हटवायचा का?",
-        delete_all_confirm: "तुम्हाला नक्की सर्व शॉर्टकट हटवायचे आहेत का?"
+        delete_all_confirm: "तुम्हाला नक्की सर्व शॉर्टकट हटवायचे आहेत का?",
+        conflictMsg: "कृपया दुसरी कळ वापरा. ही कळ '{key}' आधीच '{button}' साठी वापरली गेली आहे।"
     },
     മലയാളം: {
         settingsTitle: "z.WebKeyBind ക്രമീകരണങ്ങൾ",
@@ -78,7 +82,8 @@ window.translations = {
         p_key: "കീ",
         no_shortcuts: "കുറുക്കുവഴികളൊന്നും കണ്ടെത്തിയില്ല:",
         delete_confirm: "ഈ കുറുക്കുവഴി നീക്കം ചെയ്യണോ?",
-        delete_all_confirm: "എല്ലാ കുറുക്കുവഴികളും നീക്കം ചെയ്യണോ?"
+        delete_all_confirm: "എല്ലാ കുറുക്കുവഴികളും നീക്കം ചെയ്യണോ?",
+        conflictMsg: "ദയവായി മറ്റൊരു കീ ഉപയോഗിക്കുക. ഈ കീ '{key}' ഇതിനകം '{button}' എന്നതിനായി ഉപയോഗിച്ചു."
     }
 };
 

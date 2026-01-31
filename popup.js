@@ -5,6 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const showAllBtn = document.querySelector('.btn-show-all');
     const deleteAllBtn = document.querySelector('.btn-delete-all');
 
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+        if (tabs[0]?.id) {
+            chrome.tabs.sendMessage(tabs[0].id, { action: "z-webkeybind-popup"});
+        }
+    });
+
     // --- GLOBAL STATE (Attached to window so other files can see it) ---
     window.currentSiteHostname = "";
     let isShowingAll = false;
@@ -119,21 +125,36 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Delete All Visible
-    deleteAllBtn.addEventListener('click', () => {
-        const t = window.translations[window.currentLang];
-        if(confirm(t.delete_all_confirm)) {
-            chrome.storage.local.get(null, (items) => {
-                const idsToDelete = [];
-                Object.values(items).forEach(s => {
-                    if (s.id && (isShowingAll || s.url.includes(window.currentSiteHostname) || s.url === "<URL>")) {
-                        idsToDelete.push(`shortcut_${s.id}`);
-                    }
-                });
-                if (idsToDelete.length > 0) {
-                    chrome.storage.local.remove(idsToDelete, window.loadShortcuts);
+    if (deleteAllBtn) {
+        deleteAllBtn.addEventListener('click', () => {
+            const host = window.currentSiteHostname || "";
+            const msg = isShowingAll
+                ? "WARNING: Delete ALL shortcuts for EVERY website?"
+                : `Delete shortcuts for ${host}?`;
+
+            if (confirm(msg)) {
+                if (isShowingAll) {
+                    // Nuclear option: clear everything
+                    chrome.storage.local.clear(() => {
+                        if (window.loadShortcuts) window.loadShortcuts();
+                    });
+                } else {
+                    chrome.storage.local.get(null, (items) => {
+                        const keysToRemove = Object.keys(items).filter(key => {
+                            const item = items[key];
+                            return key.startsWith('shortcut_') &&
+                                (item.url === host || host.includes(item.url));
+                        });
+                        if (keysToRemove.length > 0) {
+                            chrome.storage.local.remove(keysToRemove, () => {
+                                if (window.loadShortcuts) window.loadShortcuts();
+                            });
+                        } else {
+                            alert("No shortcuts found for this site to delete.");
+                        }
+                    });
                 }
-            });
-        }
-    });
+            }
+        });
+    }
 });
