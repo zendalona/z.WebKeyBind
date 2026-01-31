@@ -34,12 +34,15 @@ Instead of tabbing through dozens of elements, users can simply press a predefin
 3. Click **Load unpacked**
 4. Select the extension folder
 
+<<<<<<< HEAD
 #### Microsoft edge
 1. Open `edge://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked**
 4. Select the extension folder
 
+=======
+>>>>>>> a373182d8cd9788dd8c495b753fd40b7ffa0ad9f
 #### Firefox
 1. Open `about:debugging#/runtime/this-firefox`
 2. Click **Load Temporary Add-on**
@@ -94,6 +97,9 @@ z.WebKeyBind is built with accessibility at its core and follows best practices 
 
 - Google Chrome  
 - Mozilla Firefox
+<<<<<<< HEAD
 - Microsoft edge
+=======
+>>>>>>> a373182d8cd9788dd8c495b753fd40b7ffa0ad9f
 - Safari  
 
