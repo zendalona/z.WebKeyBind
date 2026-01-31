@@ -1,5 +1,4 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // --- UI ELEMENTS ---
     const shortcutList = document.querySelector('.shortcut-list');
     const addBtn = document.querySelector('.btn-add');
     const showAllBtn = document.querySelector('.btn-show-all');
@@ -11,18 +10,14 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- GLOBAL STATE (Attached to window so other files can see it) ---
     window.currentSiteHostname = "";
     let isShowingAll = false;
 
     // --- 1. INITIALIZATION ---
     chrome.storage.local.get(['ui_language'], (result) => {
-        // Set Language using the function from language.js
         if (result.ui_language && window.updateLanguageUI) {
             window.updateLanguageUI(result.ui_language);
         }
-
-        // Get Current URL
         chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
             if (tabs[0] && tabs[0].url) {
                 try {
@@ -31,7 +26,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     window.currentSiteHostname = "local";
                 }
             }
-            loadShortcuts(); // Initial Load
+            loadShortcuts();
         });
     });
 
@@ -39,8 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
     window.loadShortcuts = function() {
         shortcutList.innerHTML = ''; 
         const t = window.translations[window.currentLang] || window.translations['English'];
-        
-        // Update "Show All" Button Text
         showAllBtn.innerHTML = `${isShowingAll ? t.showCurrent : t.showAll} <span class="arrow-circle">${isShowingAll ? '⌃' : '⌄'}</span>`;
 
         chrome.storage.local.get(null, (items) => {
@@ -94,7 +87,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (confirm(t.delete_confirm)) {
                 chrome.storage.local.remove(`shortcut_${data.id}`, () => {
                     row.remove();
-                    window.loadShortcuts(); // Refresh index numbers
+                    window.loadShortcuts();
                 });
             }
         });
@@ -103,14 +96,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // --- 4. BUTTON ACTIONS ---
-    
-    // Toggle Show All / Current Site
     showAllBtn.addEventListener('click', () => {
         isShowingAll = !isShowingAll;
         window.loadShortcuts();
     });
-
-    // Add New Shortcut
     addBtn.addEventListener('click', () => {
         const uniqueId = Date.now().toString();
         const newShortcut = {
