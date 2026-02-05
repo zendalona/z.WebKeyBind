@@ -19,6 +19,11 @@ document.body.appendChild(srAnnouncer);
 
 function announceToScreenReader(message, color = "default") {
     showNotification(message, color);
+    const langMap = { "English": "en", "हिंदी": "hi", "मराठी": "mr", "മലയാളം": "ml" };
+    const isoCode = langMap[window.currentLang] || "en";
+    // 2. Set the language attribute so NVDA switches its accent
+    srAnnouncer.setAttribute('lang', isoCode);
+
     srAnnouncer.textContent = '';
     setTimeout(() => { srAnnouncer.textContent = message; }, 50);
 }

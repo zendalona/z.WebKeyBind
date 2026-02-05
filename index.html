@@ -15,10 +15,10 @@
             <h1 class="logo">z.WebKeyBind Settings</h1>
             <div class="header-right">
                 <div class="language-dropdown" tabindex="0">
-                    <div class="dropdown-trigger">
+                    <button class="dropdown-trigger" id="lang-button" aria-haspopup="listbox" aria-expanded="false">
                         <span class="globe-icon">&#127760;</span>
                         <span id="current-lang">English</span> <span class="arrow">&#9662;</span>
-                    </div>
+                    </button>
                     <div class="dropdown-content" id="lang-menu">
                         <div class="dropdown-item active" data-lang="English">
                             <span class="check">&#10003;</span> English
@@ -36,7 +36,7 @@
                 </div>
 
                 <div class="menu-container" tabindex="0">
-                    <button class="menu-burger">☰</button>
+                    <button class="menu-burger" id="burger-label" aria-label="Menu">☰</button>
                     <div class="import-export-dropdown">
                         <button class="close-menu">×</button>
                         <button class="menu-btn" id="btn-import">Import Shortcuts</button>
@@ -93,23 +93,11 @@
         </footer>
     </div>
 
-    <div id="import-modal" class="modal-overlay" style="display:none;">
-        <div class="modal-content">
-            <h3>Import Shortcuts</h3>
-            <div id="drop-zone" class="drop-zone">
-                <p>Drag & Drop .json file here</p>
-                <p style="font-size:12px; color:#999;">or click to browse</p>
-                <input type="file" id="file-input" accept=".json" style="display:none;">
-            </div>
-            <button id="btn-close-import" class="btn-close-modal">Close</button>
-        </div>
-    </div>
-
-    <div id="import-modal" class="modal-overlay">
-        <div class="modal-content">
+    <div id="import-modal" class="modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="modal-title-id">
+        <div class="modal-content" tabindex="-1">
+            <span id="silent-start" tabindex="-1" style="outline:none;"></span>
             <h3 class="modal-title">Import Shortcuts</h3>
-
-            <div id="drop-zone" class="drop-zone">
+            <div id="drop-zone" class="drop-zone" tabindex="0" role="button" >
                 <span class="upload-icon">📂</span>
                 <p>Drag & Drop <b>.json</b> file here</p>
                 <p class="sub-text">or click to browse</p>
