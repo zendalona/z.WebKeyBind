@@ -77,10 +77,48 @@ document.addEventListener('DOMContentLoaded', () => {
         row.querySelectorAll('input').forEach(input => {
             input.addEventListener('input', (e) => {
                 const field = e.target.dataset.field;
-                data[field] = e.target.value;
-                chrome.storage.local.set({ [`shortcut_${data.id}`]: data });
+                let value = e.target.value;
+                if (field === 'key') {
+                    value = value.toUpperCase();
+                    e.target.value = value;      
+                }
+                if (field === 'key' && value.trim() !== "") {
+                    chrome.storage.local.get(null, (items) => {
+                        const currentHost = window.currentSiteHostname;
+                        const allItems = Object.values(items);
+                        
+                        const duplicate = allItems.find(item => item.id !== data.id &&     
+                            item.key === value &&   
+                            (item.url === currentHost || data.url === currentHost)
+                        );
+
+                        if (duplicate) {
+                            const btnName = duplicate.name || duplicate.elementId || "Unknown";
+                            let errorTemplate = t.duplicate_error || "The key '{key}' is already saved for this button: {name}";
+                            let finalMsg = errorTemplate
+                                .replace("{key}", value)
+                                .replace("{name}", btnName);
+                                
+                            alert(finalMsg);
+                            e.target.value = ""; 
+                            return; 
+                        }
+                        // No duplicate? Save.
+                        saveData(field, value);
+                    });
+                } else {
+                    saveData(field, value);
+                }
             });
         });
+        function saveData(field, value) {
+            data[field] = value;
+            if (data.elementId && data.elementId.trim() !== "") {
+                chrome.storage.local.set({ [`shortcut_${data.id}`]: data });
+            } else {
+                chrome.storage.local.remove(`shortcut_${data.id}`);
+            }
+        }
 
         // Delete Row
         row.querySelector('.btn-remove').addEventListener('click', () => {
@@ -109,9 +147,9 @@ document.addEventListener('DOMContentLoaded', () => {
             elementId: "",
             key: ""
         };
-        chrome.storage.local.set({ [`shortcut_${uniqueId}`]: newShortcut }, () => {
-            window.loadShortcuts();
-        });
+        const nextIndex = document.querySelectorAll('.shortcut-row').length + 1;
+        createRow(newShortcut, nextIndex);
+        shortcutList.scrollTop = shortcutList.scrollHeight;
     });
 
     if (deleteAllBtn) {

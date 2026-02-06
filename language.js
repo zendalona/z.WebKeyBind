@@ -30,7 +30,8 @@ window.translations = {
         dragDropText: "Drag & Drop .json file here",
         browseText: "or click to browse",
         cancelBtn: "Close",
-        menuLabel: "Menu"
+        menuLabel: "Menu",
+        duplicate_error: "The key '{key}' is already saved for this button: {name}"
     },
     हिंदी: {
         settingsTitle: "z.WebKeyBind सेटिंग्स",
@@ -62,7 +63,8 @@ window.translations = {
         dragDropText: ".json फ़ाइल को यहाँ ड्रैग और ड्रॉप करें",
         browseText: "या ब्राउज़ करने के लिए क्लिक करें",
         cancelBtn: "बंद करें",
-        menuLabel: "मेन्यू"
+        menuLabel: "मेन्यू",
+        duplicate_error: "कुंजी '{key}' पहले से ही इस बटन के लिए सहेजी गई है: {name}"
 
     },
     मराठी: {
@@ -95,7 +97,9 @@ window.translations = {
         dragDropText: ".json फाइल येथे ड्रॅग आणि ड्रॉप करा",
         browseText: "किंवा ब्राउझ करण्यासाठी क्लिक करा",
         cancelBtn: "बंद करा",
-        menuLabel: "मेनू"
+        menuLabel: "मेनू",
+        duplicate_error: "ही की '{key}' या बटणासाठी आधीच सेव्ह केली आहे: {name}"
+
     },
     മലയാളം: {
         settingsTitle: "z.WebKeyBind ക്രമീകരണങ്ങൾ",
@@ -127,7 +131,8 @@ window.translations = {
         dragDropText: ".json ഫയൽ ഇവിടെ ഡ്രാഗ് ചെയ്ത് ഡ്രോപ്പ് ചെയ്യുക",
         browseText: "അല്ലെങ്കിൽ ബ്രൗസ് ചെയ്യാൻ ക്ലിക്ക് ചെയ്യുക",
         cancelBtn: "അടയ്ക്കുക",
-        menuLabel: "മെനു"
+        menuLabel: "മെനു",
+        duplicate_error: "ഈ കീ '{key}' ഈ ബട്ടണിനായി ഇതിനകം സേവ് ചെയ്തിട്ടുണ്ട്: {name}"
     }
 };
 
