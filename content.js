@@ -6,6 +6,7 @@ let activeHoverElement = null;
 let lastInteractionType = 'mouse'; 
 let isSaving = false; 
 let isLocked = false;
+let shortcutCache = []; 
 
 // =======================================================
 // 2. ACCESSIBILITY ENGINE
@@ -21,7 +22,6 @@ function announceToScreenReader(message, color = "default") {
     showNotification(message, color);
     const langMap = { "English": "en", "हिंदी": "hi", "मराठी": "mr", "മലയാളം": "ml" };
     const isoCode = langMap[window.currentLang] || "en";
-    // 2. Set the language attribute so NVDA switches its accent
     srAnnouncer.setAttribute('lang', isoCode);
 
     srAnnouncer.textContent = '';
@@ -40,11 +40,11 @@ function showNotification(msg, colorType) {
     div.setAttribute('aria-hidden', 'true'); 
     
     let bgColor = "#333333"; 
-    if (colorType === "blue") bgColor = "#007BFF";   // Mouse Mode
-    if (colorType === "purple") bgColor = "#6f42c1"; // Keyboard Mode
-    if (colorType === "orange") bgColor = "#FF9800"; // Creation Mode
-    if (colorType === "red")  bgColor = "#DC3545";   // OFF
-    if (colorType === "green") bgColor = "#28A745";  // Saved
+    if (colorType === "blue") bgColor = "#007BFF";   
+    if (colorType === "purple") bgColor = "#6f42c1"; 
+    if (colorType === "orange") bgColor = "#FF9800"; 
+    if (colorType === "red")  bgColor = "#DC3545";   
+    if (colorType === "green") bgColor = "#28A745";  
 
     div.style.cssText = `
         position: fixed !important; top: 20px !important; left: 50% !important; 
@@ -65,7 +65,89 @@ function showNotification(msg, colorType) {
 }
 
 // =======================================================
-// 3. LISTENERS
+// 3. UI INJECTION (Robust Alt+Shift+S)
+// =======================================================
+function toggleSettingsModal() {
+    if (!chrome.runtime?.id) {
+        announceToScreenReader("Extension context invalid. Refresh page.", "red");
+        return;
+    }
+
+    const existing = document.getElementById('webkeybind-shadow-root');
+    if (existing) { 
+        existing.remove();
+        announceToScreenReader("Settings window is closed", "red");
+        currentMode = null;
+        updateHighlight(null);
+        return; 
+    }
+
+    try {
+        const host = document.createElement('div');
+        host.id = 'webkeybind-shadow-root';
+        host.style.cssText = 'position: fixed; z-index: 2147483647; top: 0; left: 0; width: 0; height: 0;';
+        document.body.appendChild(host);
+
+        const shadow = host.attachShadow({mode: 'open'});
+        
+        const backdrop = document.createElement('div');
+        backdrop.style.cssText = `
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            background: rgba(0,0,0,0.5); z-index: 2147483646;
+            backdrop-filter: blur(2px);
+        `;
+        backdrop.onclick = () => {
+            host.remove();
+            announceToScreenReader("Settings window is closed", "red");
+        };
+
+        const iframe = document.createElement('iframe');
+        iframe.src = chrome.runtime.getURL("index.html"); 
+        iframe.style.cssText = `
+            position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            width: 900px; height: 650px; max-width: 95vw; max-height: 95vh;
+            border: none; border-radius: 12px; 
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            z-index: 2147483647; background: white;
+        `;
+
+        shadow.appendChild(backdrop);
+        shadow.appendChild(iframe);
+        
+        announceToScreenReader("Settings window is opened", "blue");
+        
+    } catch (err) {
+        announceToScreenReader("Error opening settings. Refresh page.", "red");
+    }
+}
+
+// =======================================================
+// 4. CACHE SYSTEM
+// =======================================================
+
+function updateShortcutCache() {
+    if (!chrome?.storage?.local) return;
+    try {
+        const currentHost = window.location.hostname;
+        chrome.storage.local.get(null, (items) => {
+            if (chrome.runtime.lastError) return;
+            shortcutCache = Object.values(items).filter(s => 
+                s.key && (currentHost.includes(s.url) || s.url === "<URL>")
+            );
+        });
+    } catch(e) {}
+}
+
+updateShortcutCache();
+
+try {
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local') updateShortcutCache();
+    });
+} catch(e) {}
+
+// =======================================================
+// 5. LISTENERS
 // =======================================================
 
 function isInputActive() {
@@ -76,59 +158,50 @@ function isInputActive() {
     return tagName === 'input' || tagName === 'textarea' || tagName === 'select' || isEditable;
 }
 
-// A. MOUSE LISTENER
 document.addEventListener('mouseover', (e) => {
-    // Only active in 'mouse' or 'creation' modes
     if (isLocked) return;
     if (currentMode !== 'mouse' && currentMode !== 'creation') return; 
-    
     lastInteractionType = 'mouse';
     const target = getClickableTarget(e.target);
-    
-    // Always run update to ensure cleanup happens
-    if (target !== activeHoverElement) {
-        updateHighlight(target); 
-    }
+    if (target !== activeHoverElement) updateHighlight(target); 
 }, true);
 
-// B. FOCUS LISTENER
 document.addEventListener('focus', (e) => {
-    // Only active in 'keyboard' or 'creation' modes
     if (currentMode !== 'keyboard' && currentMode !== 'creation') return; 
-
     lastInteractionType = 'keyboard';
     const target = getClickableTarget(e.target);
-    
-    if (target) {
-        updateHighlight(target); 
-    }
+    if (target) updateHighlight(target); 
 }, true);
 
-// C. MASTER KEY LISTENER
+// --- MASTER KEY LISTENER ---
 window.addEventListener('keydown', (event) => {
-    if (event.repeat) return; // Anti-Repeat Protection
+    if (event.repeat) return; 
     const key = event.key.toUpperCase();
     if (['CONTROL', 'SHIFT', 'ALT', 'TAB', 'CAPSLOCK'].includes(key)) return;
 
-    // GLOBAL SHORTCUTS
     if (event.altKey && event.shiftKey) {
-        if (key === 'S') { event.preventDefault(); event.stopImmediatePropagation(); return;}
+        if (key === 'S') { 
+            event.preventDefault(); event.stopImmediatePropagation(); 
+            toggleSettingsModal(); 
+            return;
+        }
         if (key === 'M') { event.preventDefault(); event.stopImmediatePropagation(); switchMode('mouse'); return; }
         if (key === 'K') { event.preventDefault(); event.stopImmediatePropagation(); switchMode('keyboard'); return; }
         if (key === 'C') { event.preventDefault(); event.stopImmediatePropagation(); switchMode('creation'); return; }
         if (key === 'A') { event.preventDefault(); event.stopImmediatePropagation(); readAllShortcuts();return; }
     }
 
-    if (isInputActive()) return;
+    if (isInputActive() && !event.altKey && !event.ctrlKey) return; 
 
     // SAVE LOGIC
     if (currentMode !== null) {
         if (key.match(/^[A-Z0-9]$/)) {
+            if (isInputActive()) return;
+
             event.preventDefault();
             event.stopImmediatePropagation();
             if (isSaving) return; 
 
-            // Use the currently highlighted element
             if (activeHoverElement) {
                 saveShortcut(activeHoverElement, key);
             } else {
@@ -136,12 +209,18 @@ window.addEventListener('keydown', (event) => {
             }
         }
     } else {
-        // Execute Shortcut
+        // EXECUTE SHORTCUT
         if (event.altKey || (event.ctrlKey && event.shiftKey)) { 
-            loadAndRunShortcut(key);
+            const match = shortcutCache.find(s => s.key === key);
+            if (match) {
+                event.preventDefault(); 
+                event.stopImmediatePropagation();
+                runCachedShortcut(match);
+            }
         }
     }
 }, true);
+
 document.addEventListener('click', (e) => {
     if (currentMode !== 'mouse' && currentMode !== 'creation') return;
 
@@ -150,28 +229,23 @@ document.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopImmediatePropagation();
 
-        isLocked = true; // Lock the focus
+        isLocked = true; 
         updateHighlight(target);
         
-        // Visual feedback: Orange outline for "Locked/Selected"
         target.style.outline = "4px solid #FF9800"; 
         announceToScreenReader("Button selected. Press a key to save shortcut.", "orange");
     }
 }, true);
+
 // =======================================================
-// 4. HIGHLIGHT ENGINE
+// 6. HIGHLIGHT ENGINE
 // =======================================================
 
 function updateHighlight(newElement) {
-    // NUCLEAR OPTION: Find ANY element with our highlight attribute and strip it.
     document.querySelectorAll('[data-webkeybind-highlight="true"]').forEach(el => {
         removeHighlight(el);
     });
-
-    // Update state
     activeHoverElement = newElement;
-    
-    // Apply new highlight
     if (activeHoverElement) {
         addHighlight(activeHoverElement);
     }
@@ -182,7 +256,7 @@ function addHighlight(el) {
     if (el.dataset.originalOutline === undefined) {
         el.dataset.originalOutline = el.style.outline || "";
     }
-    el.style.outline = "4px solid #2196F3"; // Blue
+    el.style.outline = "4px solid #2196F3"; 
     el.style.outlineOffset = "2px";
     el.setAttribute('data-webkeybind-highlight', 'true');
 }
@@ -198,11 +272,12 @@ function removeHighlight(el) {
 }
 
 // =======================================================
-// 5. MODE SWITCHING (FIXED NAMES)
+// 7. MODE SWITCHING
 // =======================================================
 function switchMode(newMode) {
+    if (!chrome.runtime?.id) { announceToScreenReader("Please refresh the page.", "red"); return; }
     isLocked = false;
-    // 1. Turning OFF?
+    
     if (currentMode === newMode) {
         let modeName = "Teach Mode";
         if (currentMode === 'mouse') modeName = "Mouse Mode";
@@ -211,14 +286,13 @@ function switchMode(newMode) {
 
         currentMode = null;
         document.body.removeAttribute('role');
-        updateHighlight(null); // Clean everything
+        updateHighlight(null); 
         
-        announceToScreenReader(`${modeName} OFF.`, "red"); // <--- FIXED: Dynamic Name
+        announceToScreenReader(`${modeName} Disabled.`, "red"); 
         document.body.style.cursor = "default";
         return;
     }
 
-    // 2. Turning ON
     currentMode = newMode;
     document.body.setAttribute('role', 'application'); 
 
@@ -231,9 +305,9 @@ function switchMode(newMode) {
         updateHighlight(focused); 
     }
 
-    if (newMode === 'mouse') { announceToScreenReader("Mouse Mode ON.", "blue"); document.body.style.cursor = "crosshair"; } 
-    else if (newMode === 'keyboard') { announceToScreenReader("Keyboard Mode ON.", "purple"); document.body.style.cursor = "default"; }
-    else if (newMode === 'creation') { announceToScreenReader("Creation Mode ON.", "orange"); document.body.style.cursor = "crosshair"; }
+    if (newMode === 'mouse') { announceToScreenReader("Mouse Mode Enabled.", "blue"); document.body.style.cursor = "crosshair"; } 
+    else if (newMode === 'keyboard') { announceToScreenReader("Keyboard Mode Enabled.", "purple"); document.body.style.cursor = "default"; }
+    else if (newMode === 'creation') { announceToScreenReader("Creation Mode Enabled.", "orange"); document.body.style.cursor = "crosshair"; }
 }
 
 function getClickableTarget(el) {
@@ -242,58 +316,80 @@ function getClickableTarget(el) {
     return el.closest('button, a, input, select, textarea, [role="button"], [role="link"], [role="menuitem"], [role="checkbox"], [tabindex]:not([tabindex="-1"]), [class*="btn"], [data-testid]');
 }
 
+// =======================================================
+// 8. SAVE LOGIC (ULTRA STRICT DUPLICATE CHECK)
+// =======================================================
 function saveShortcut(element, key) {
     if (!chrome?.storage?.local) return;
     const currentHost = window.location.hostname;
     const profile = generateRobustProfile(element);
     
-    // 1. Define a name for the element globally within this function scope
-    const currentElementName = profile.aria || profile.text || "Element";
+    // Normalize Text to avoid whitespace mismatch issues
+    const currentName = (profile.aria || profile.text || "Element").trim();
+    const currentId = profile.id || "";
+    const currentPath = profile.path || "";
 
     chrome.storage.local.get(null, (items) => {
         const userLang = items.ui_language || "English";
 
-        // Conflict Check
-        const conflict = Object.values(items).find(item => 
+        // 1. Check if ANY shortcut uses this Key on this Host
+        const existingKeyUsage = Object.values(items).find(item => 
             item.key === key && 
-            item.url === currentHost && 
-            item.profile?.path !== profile.path
+            (item.url === currentHost || item.url === "<URL>")
         );
 
-        if (conflict) {
-            isLocked = false;
-            const existingBtnName = conflict.name || "another button";
-            
-            const msgs = {
-                "English": `Please use another Key. This key '${key}' is already used for '${existingBtnName}'.`,
-                "हिंदी": `कृपया दूसरी कुंजी का उपयोग करें। यह कुंजी '${key}' पहले से ही '${existingBtnName}' के लिए उपयोग की गई है।`,
-                "मराठी": `कृपया दुसरी कळ वापरा. ही कळ '${key}' आधीच '${existingBtnName}' साठी वापरली गेली आहे।`,
-                "മലയാളം": `ദയവായി മറ്റൊരു കീ ഉപയോഗിക്കുക. ഈ കീ '${key}' ഇതിനകം '${existingBtnName}' എന്നതിനായി ഉപയോഗിച്ചു.`
-            };
+        // 2. CONFLICT RESOLUTION
+        if (existingKeyUsage) {
+            const existingName = (existingKeyUsage.name || "Element").trim();
+            const existingId = existingKeyUsage.profile?.id || "";
+            const existingPath = existingKeyUsage.profile?.path || "";
 
-            announceToScreenReader(msgs[userLang] || msgs["English"], "red");
-            element.style.outline = "4px solid #DC3545"; 
-            setTimeout(() => { if(currentMode) addHighlight(element); }, 1000);
-            return; 
+            // "Is this the SAME button?" 
+            // We require AT LEAST ONE specific identifier to match EXACTLY.
+            // A) ID matches (Strongest)
+            // B) Path matches (Medium)
+            // C) Name matches (Weakest, but needed for visual confirmation)
+            
+            const isIdMatch = (currentId !== "" && currentId === existingId);
+            const isPathMatch = (currentPath === existingPath);
+            const isNameMatch = (currentName === existingName);
+
+            // If it looks like a different button, BLOCK IT.
+            // Rule: If Names differ -> Block. If Paths differ -> Block.
+            if (!isIdMatch && (!isPathMatch || !isNameMatch)) {
+                
+                // *** HARD BLOCK ***
+                isLocked = false;
+                const msgs = {
+                    "English": `Key '${key}' is already used for '${existingName}'.`,
+                    "हिंदी": `कुंजी '${key}' का उपयोग पहले से ही '${existingName}' के लिए किया जा रहा है।`,
+                    "मराठी": `कळ '${key}' आधीच '${existingName}' साठी वापरली आहे।`,
+                    "മലയാളം": `കീ '${key}' ഇതിനകം '${existingName}' എന്നതിനായി ഉപയോഗിക്കുന്നു.`
+                };
+                
+                announceToScreenReader(msgs[userLang] || msgs["English"], "red");
+                element.style.outline = "4px solid #DC3545"; 
+                setTimeout(() => { if(currentMode) addHighlight(element); }, 1500);
+                
+                return; // STOP. Do NOT Overwrite.
+            }
         }
 
-        // 2. SAVE LOGIC
+        // 3. PROCEED TO SAVE
         isSaving = true;
         let simpleId = profile.id ? `#${profile.id}` : (profile.text || profile.path);
 
-        const existingId = Object.keys(items).find(id => items[id].key === key && items[id].url === currentHost);
-        if (existingId) chrome.storage.local.remove(existingId);
+        const idToDelete = Object.keys(items).find(id => items[id].key === key && items[id].url === currentHost);
+        if (idToDelete) chrome.storage.local.remove(idToDelete);
 
         const uniqueId = Date.now().toString();
-        // Use currentElementName here
-        const data = { id: uniqueId, url: currentHost, name: currentElementName, profile: profile, elementId: simpleId, key: key };
+        const data = { id: uniqueId, url: currentHost, name: currentName, profile: profile, elementId: simpleId, key: key };
 
         chrome.storage.local.set({ [`shortcut_${uniqueId}`]: data }, () => {
             isSaving = false;
             isLocked = false;
             
-            // Fixed the variable name here to currentElementName
-            announceToScreenReader(`Saved shortcut for ${currentElementName} is Alt + ${key}`, "green");
+            announceToScreenReader(`Saved shortcut Alt ${key}`, "green");
             
             element.style.outline = "4px solid #00E676"; 
             setTimeout(() => {
@@ -304,41 +400,37 @@ function saveShortcut(element, key) {
     });
 }
 
-
-function loadAndRunShortcut(pressedKey) {
-    if (!chrome?.storage?.local) return;
-    chrome.storage.local.get(null, (items) => {
-        const currentHost = window.location.hostname;
-        const match = Object.values(items).find(s => s.key === pressedKey && (currentHost.includes(s.url) || s.url === "<URL>"));
-        if (match) {
-            let result = { element: null, healed: false };
-            if (match.profile) result = findElementWithHealing(match.profile);
-            else result.element = findElementBySelector(match.elementId);
-            
-            if (result.element) {
-                executeShortcut(result.element);
-                if (result.healed) {
-                    match.profile = generateRobustProfile(result.element);
-                    match.elementId = match.profile.id ? `#${match.profile.id}` : (match.profile.text || match.profile.path);
-                    chrome.storage.local.set({ [`shortcut_${match.id}`]: match });
-                }
-            } else announceToScreenReader("Element not found.", "red");
+// =======================================================
+// 9. EXECUTION LOGIC
+// =======================================================
+function runCachedShortcut(match) {
+    let result = { element: null, healed: false };
+    
+    if (match.profile) result = findElementWithHealing(match.profile);
+    else result.element = findElementBySelector(match.elementId);
+    
+    if (result.element) {
+        if(result.element.offsetParent === null) {
+            announceToScreenReader("Element is hidden.", "red");
+            return;
         }
-    });
+
+        executeShortcut(result.element);
+        
+        if (result.healed) {
+            match.profile = generateRobustProfile(result.element);
+            match.elementId = match.profile.id ? `#${match.profile.id}` : (match.profile.text || match.profile.path);
+            chrome.storage.local.set({ [`shortcut_${match.id}`]: match });
+        }
+    } else {
+        announceToScreenReader("Element not found.", "red");
+    }
 }
 
 function executeShortcut(element) {
     if (!element) return;
     element.focus();
-    const opts = { view: window, bubbles: true, cancelable: true, buttons: 1, composed: true };
-    try {
-        element.dispatchEvent(new PointerEvent('pointerdown', opts));
-        element.dispatchEvent(new MouseEvent('mousedown', opts));
-        element.dispatchEvent(new PointerEvent('pointerup', opts));
-        element.dispatchEvent(new MouseEvent('mouseup', opts));
-        element.dispatchEvent(new MouseEvent('click', opts));
-        if (typeof element.click === 'function') element.click();
-    } catch(e) {}
+    element.click(); 
 }
 
 function findElementWithHealing(profile) {
@@ -349,7 +441,7 @@ function findElementWithHealing(profile) {
     if (profile.aria) { candidate = document.querySelector(`[aria-label="${profile.aria.replace(/"/g, '\\"')}"]`); if(candidate) return { element: candidate, healed: true }; }
     if (profile.text) {
         try {
-            const xpath = `//${profile.tag}[contains(text(), '${profile.text}')]`;
+            const xpath = `//${profile.tag}[contains(text(), '${profile.text.trim()}')]`;
             const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
             if(result.singleNodeValue) return { element: result.singleNodeValue, healed: true };
         } catch(e) {}
@@ -357,6 +449,7 @@ function findElementWithHealing(profile) {
     if (profile.path) { try { if(document.querySelector(profile.path)) return { element: document.querySelector(profile.path), healed: true }; } catch(e){} }
     return { element: null, healed: false };
 }
+
 function generateRobustProfile(element) {
     if (!element) return null;
     return {
@@ -369,16 +462,38 @@ function generateRobustProfile(element) {
     };
 }
 function findElementBySelector(selector) { try { return document.querySelector(selector); } catch { return null; } }
-function generateCssPath(el) { if (!(el instanceof Element)) return; const path = []; while (el.nodeType === Node.ELEMENT_NODE) { let selector = el.nodeName.toLowerCase(); if (el.id && !/\d/.test(el.id)) { selector += '#' + CSS.escape(el.id); path.unshift(selector); break; } else { let sib = el, nth = 1; while (sib = sib.previousElementSibling) { if (sib.nodeName.toLowerCase() === selector) nth++; } if (nth !== 1) selector += `:nth-of-type(${nth})`; } path.unshift(selector); el = el.parentNode; } return path.join(" > "); }
+
+// UPDATED CSS PATH GENERATOR (More Unique)
+function generateCssPath(el) { 
+    if (!(el instanceof Element)) return; 
+    const path = []; 
+    while (el.nodeType === Node.ELEMENT_NODE) { 
+        let selector = el.nodeName.toLowerCase(); 
+        if (el.id && !/\d/.test(el.id)) { 
+            selector += '#' + CSS.escape(el.id); 
+            path.unshift(selector); 
+            break; 
+        } else { 
+            let sib = el, nth = 1; 
+            while (sib = sib.previousElementSibling) { 
+                if (sib.nodeName.toLowerCase() === selector) nth++; 
+            } 
+            // Always add nth-of-type to be safe
+            selector += `:nth-of-type(${nth})`; 
+        } 
+        path.unshift(selector); 
+        el = el.parentNode; 
+    } 
+    return path.join(" > "); 
+}
 
 // =======================================================
-// 7. AUDIO READER (Alt + Shift + A Logic)
+// 10. AUDIO READER
 // =======================================================
 function readAllShortcuts() {
     if (!chrome?.storage?.local) return;
     const currentHost = window.location.hostname;
     chrome.storage.local.get(null, (items) => {
-        // Filter shortcuts for THIS specific website
         const siteShortcuts = Object.values(items).filter(s =>
             s.key && (currentHost.includes(s.url) || s.url === "<URL>")
         );
@@ -388,23 +503,7 @@ function readAllShortcuts() {
             const spokenText = siteShortcuts
                 .map(s => `Alt ${s.key} is for ${s.name}`)
                 .join(". ");
- 
             announceToScreenReader(`Found ${siteShortcuts.length} shortcuts. ${spokenText}`);
         }
     });
 }
- 
-let isExtensionWindowOpen = false;
-chrome.runtime.onConnect.addListener((port) => {
-    if (port.name === "z-webkeybind-popup") {
-        isExtensionWindowOpen = true;
-        announceToScreenReader("setting window for z.WebkeyBind is open", "blue");
-        port.onDisconnect.addListener(() => {
-            isExtensionWindowOpen = false;
-            announceToScreenReader("setting window for z.WebkeyBind is closed", "red");
-            currentMode = null;
-            updateHighlight(null);
-            document.body.style.cursor = "default";
-        });
-    }
-});

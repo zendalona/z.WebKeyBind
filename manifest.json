@@ -26,10 +26,11 @@
     },
     "background": {
         "service_worker": "background.js",
-        "scripts": ["background.js"],
+        "scripts": [
+            "background.js"
+        ],
         "type": "module"
     },
-    
     "content_scripts": [
         {
             "matches": [
@@ -43,8 +44,16 @@
     ],
     "web_accessible_resources": [
         {
-            "resources": ["index.html","style.css","popup.js"],
-            "matches": ["<all_urls>"]
+            "resources": [
+                "index.html",
+                "style.css",
+                "popup.js",
+                "language.js",
+                "import_export.js"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
         }
     ],
     "commands": {
