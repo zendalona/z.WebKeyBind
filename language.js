@@ -19,6 +19,9 @@ window.translations = {
         p_id: "Element ID / Class",
         p_key: "Key",
         no_shortcuts: "No shortcuts found for",
+        deleted_success: "Shortcut deleted successfully.",
+        deleted_all_success: "All shortcuts deleted successfully.",
+        deleted_site_success: "Shortcuts for this site deleted.",
         delete_confirm: "Delete this shortcut?",
         delete_all_confirm: "Delete all visible shortcuts?",
         importBtn: "Import Shortcuts",
@@ -32,7 +35,16 @@ window.translations = {
         browseText: "or click to browse",
         cancelBtn: "Close",
         menuLabel: "Menu",
-        duplicate_error: "The key '{key}' is already saved for this button: {name}"
+        duplicate_error: "The key '{key}' is already saved for this button: {name}",
+        button_already_has_shortcut: "This button already has a shortcut: Alt + {key}",
+        key_already_used: "Key '{key}' is already used for '{name}'.",
+        invalid_id: "The Button ID / Selector was not found on this webpage. Please check the ID or Aria-Label.",
+        cancel: "Cancel",
+        yes_delete: "Yes, Delete",
+        invalid_id: "The Button ID / Selector was not found on this webpage. Please check the ID or Aria-Label.",
+        deleted_success: "Shortcut deleted successfully.",
+        deleted_all_success: "All shortcuts deleted successfully.",
+        deleted_site_success: "Shortcuts for this site deleted."
     },
     हिंदी: {
         settingsTitle: "z.WebKeyBind सेटिंग्स",
@@ -51,6 +63,9 @@ window.translations = {
         p_id: "तत्व ID",
         p_key: "कूंजी",
         no_shortcuts: "इसके लिए कोई शॉर्टकट नहीं मिला:",
+        deleted_success: "शॉर्टकट सफलतापूर्वक हटा दिया गया।",
+        deleted_all_success: "सभी शॉर्टकट सफलतापूर्वक हटा दिए गए।",
+        deleted_site_success: "इस साइट के शॉर्टकट हटा दिए गए।",
         delete_confirm: "क्या आप इस शॉर्टकट को हटाना चाहते हैं?",
         delete_all_confirm: "क्या आप सभी दिखाई देने वाले शॉर्टकट हटाना चाहते हैं?",
         importBtn: "आयात करें",
@@ -64,7 +79,16 @@ window.translations = {
         browseText: "या ब्राउज़ करने के लिए क्लिक करें",
         cancelBtn: "बंद करें",
         menuLabel: "मेन्यू",
-        duplicate_error: "कुंजी '{key}' पहले से ही इस बटन के लिए सहेजी गई है: {name}"
+        duplicate_error: "कुंजी '{key}' पहले से ही इस बटन के लिए सहेजी गई है: {name}",
+        button_already_has_shortcut: "इस बटन का शॉर्टकट पहले से ही मौजूद है: Alt + {key}",
+        key_already_used: "कुंजी '{key}' का उपयोग पहले से ही '{name}' के लिए किया जा रहा है।",
+        invalid_id: "इस वेबपेज पर बटन ID या सिलेक्टर नहीं मिला। कृपया ID या Aria-Label की जाँच करें।",
+        cancel: "रद्द करें",
+        yes_delete: "हाँ, हटाएँ",
+        invalid_id: "इस वेबपेज पर बटन ID या सिलेक्टर नहीं मिला। कृपया ID या Aria-Label की जाँच करें।",
+        deleted_success: "शॉर्टकट सफलतापूर्वक हटा दिया गया।",
+        deleted_all_success: "सभी शॉर्टकट सफलतापूर्वक हटा दिए गए।",
+        deleted_site_success: "इस साइट के शॉर्टकट हटा दिए गए।"
     },
     मराठी: {
         settingsTitle: "z.WebKeyBind सेटिंग्स",
@@ -83,6 +107,9 @@ window.translations = {
         p_id: "एलिमेंट ID",
         p_key: "कळ (Key)",
         no_shortcuts: "यासाठी शॉर्टकट सापडले नाहीत:",
+        deleted_success: "शॉर्टकट यशस्वीरित्या हटवला.",
+        deleted_all_success: "सर्व शॉर्टकट यशस्वीरित्या हटवले.",
+        deleted_site_success: "या साइटचे शॉर्टकट हटवले गेले.",
         delete_confirm: "हा शॉर्टकट हटवायचा का?",
         delete_all_confirm: "तुम्हाला नक्की सर्व शॉर्टकट हटवायचे आहेत का?",
         importBtn: "आयात करा",
@@ -96,7 +123,16 @@ window.translations = {
         browseText: "किंवा ब्राउझ करण्यासाठी क्लिक करा",
         cancelBtn: "बंद करा",
         menuLabel: "मेनू",
-        duplicate_error: "ही की '{key}' या बटणासाठी आधीच सेव्ह केली आहे: {name}"
+        duplicate_error: "ही की '{key}' या बटणासाठी आधीच सेव्ह केली आहे: {name}",
+        button_already_has_shortcut: "या बटणासाठी शॉर्टकट आधीच अस्तित्वात आहे: Alt + {key}",
+        key_already_used: "कळ '{key}' आधीच '{name}' साठी वापरली आहे।",
+        invalid_id: "या वेबपेजवर बटण ID किंवा सिलेक्टर सापडला नाही. कृपया ID किंवा Aria-Label तपासा.",
+        cancel: "रद्द करा",
+        yes_delete: "होय, हटवा",
+        invalid_id: "या वेबपेजवर बटण ID किंवा सिलेक्टर सापडला नाही. कृपया ID किंवा Aria-Label तपासा.",
+        deleted_success: "शॉर्टकट यशस्वीरित्या हटवला.",
+        deleted_all_success: "सर्व शॉर्टकट यशस्वीरित्या हटवले.",
+        deleted_site_success: "या साइटचे शॉर्टकट हटवले गेले."
     },
     മലയാളം: {
         settingsTitle: "z.WebKeyBind ക്രമീകരണങ്ങൾ",
@@ -115,6 +151,9 @@ window.translations = {
         p_id: "എലമെന്റ് ID",
         p_key: "കീ",
         no_shortcuts: "കുറുക്കുവഴികളൊന്നും കണ്ടെത്തിയില്ല:",
+        deleted_success: "കുറുക്കുവഴി വിജയകരമായി നീക്കംചെയ്തു.",
+        deleted_all_success: "എല്ലാ കുറുക്കുവഴികളും വിജയകരമായി നീക്കംചെയ്തു.",
+        deleted_site_success: "ഈ സൈറ്റിലെ കുറുക്കുവഴികൾ നീക്കംചെയ്തു.",
         delete_confirm: "ഈ കുറുക്കുവഴി നീക്കം ചെയ്യണോ?",
         delete_all_confirm: "എല്ലാ കുറുക്കുവഴികളും നീക്കം ചെയ്യണോ?",
         importBtn: "ഇമ്പോർട്ട്",
@@ -128,22 +167,31 @@ window.translations = {
         browseText: "അല്ലെങ്കിൽ ബ്രൗസ് ചെയ്യാൻ ക്ലിക്ക് ചെയ്യുക",
         cancelBtn: "അടയ്ക്കുക",
         menuLabel: "മെനു",
-        duplicate_error: "ഈ കീ '{key}' ഈ ബട്ടണിനായി ഇതിനകം സേവ് ചെയ്തിട്ടുണ്ട്: {name}"
+        duplicate_error: "ഈ കീ '{key}' ഈ ബട്ടണിനായി ഇതിനകം സേവ് ചെയ്തിട്ടുണ്ട്: {name}",
+        button_already_has_shortcut: "ഈ ബട്ടണിന് ഇതിനകം ഒരു കുറുക്കുവഴി ഉണ്ട്: Alt + {key}",
+        key_already_used: "കീ '{key}' ഇതിനകം '{name}' എന്നതിനായി ഉപയോഗിക്കുന്നു.",
+        invalid_id: "ഈ വെബ്‌പേജിൽ ബട്ടൺ ID അല്ലെങ്കിൽ സെലക്ടർ കണ്ടെത്തിയില്ല. ദയവായി ID അല്ലെങ്കിൽ Aria-Label പരിശോധിക്കുക.",
+        cancel: "റദ്ദാക്കുക",
+        yes_delete: "അതെ, നീക്കം ചെയ്യുക",
+        invalid_id: "ഈ വെബ്‌പേജിൽ ബട്ടൺ ID അല്ലെങ്കിൽ സെലക്ടർ കണ്ടെത്തിയില്ല. ദയവായി ID അല്ലെങ്കിൽ Aria-Label പരിശോധിക്കുക.",
+        deleted_success: "കുറുക്കുവഴി വിജയകരമായി നീക്കംചെയ്തു.",
+        deleted_all_success: "എല്ലാ കുറുക്കുവഴികളും വിജയകരമായി നീക്കംചെയ്തു.",
+        deleted_site_success: "ഈ സൈറ്റിലെ കുറുക്കുവഴികൾ നീക്കംചെയ്തു."
     }
 };
 
 window.currentLang = "English";
 
 // --- UPDATE LANGUAGE UI ---
-window.updateLanguageUI = function(lang) {
-    window.currentLang = lang; 
+window.updateLanguageUI = function (lang) {
+    window.currentLang = lang;
     const t = window.translations[lang] || window.translations['English'];
-    
+
     // Header & Titles
     document.getElementById('current-lang').innerText = lang;
     document.querySelector('.logo').innerText = t.settingsTitle;
     const titles = document.querySelectorAll('.section-title');
-    if(titles.length >= 2) {
+    if (titles.length >= 2) {
         titles[0].innerText = t.defaultTitle;
         titles[1].innerText = t.savedTitle;
     }
@@ -178,7 +226,7 @@ window.updateLanguageUI = function(lang) {
 
     // Dropdown Items
     document.querySelectorAll('.dropdown-item').forEach(item => {
-        if(item.getAttribute('data-lang') === lang) {
+        if (item.getAttribute('data-lang') === lang) {
             item.classList.add('active');
             item.querySelector('.check').style.opacity = '1';
         } else {
@@ -186,10 +234,10 @@ window.updateLanguageUI = function(lang) {
             item.querySelector('.check').style.opacity = '0';
         }
     });
-    
+
     // Default Table
     const rows = document.querySelectorAll('.default-table tbody tr');
-    if(rows.length >= 4) {
+    if (rows.length >= 4) {
         rows[0].cells[0].innerText = t.def_row1;
         rows[1].cells[0].innerText = t.def_row2;
         rows[2].cells[0].innerText = t.def_row3;
@@ -205,19 +253,19 @@ window.updateLanguageUI = function(lang) {
 document.addEventListener('DOMContentLoaded', () => {
     const langTrigger = document.querySelector('.dropdown-trigger');
     const langMenu = document.getElementById('lang-menu');
-    
-    if(langTrigger && langMenu) {
+
+    if (langTrigger && langMenu) {
         // 1. CLICK TRIGGER
         langTrigger.addEventListener('click', (e) => {
-            e.stopPropagation(); 
-            
+            e.stopPropagation();
+
             // --- FIX: MUTUAL EXCLUSION (Close other menu) ---
             const otherMenu = document.querySelector('.import-export-dropdown');
-            if(otherMenu) otherMenu.style.display = 'none';
+            if (otherMenu) otherMenu.style.display = 'none';
             // -----------------------------------------------
 
             const isVisible = langMenu.style.display === 'block';
-            
+
             if (isVisible) {
                 langMenu.style.display = 'none';
                 langTrigger.setAttribute('aria-expanded', 'false');
@@ -235,12 +283,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 chrome.storage.local.set({ 'ui_language': selectedLang });
                 if (window.updateLanguageUI) window.updateLanguageUI(selectedLang);
                 if (window.loadShortcuts) window.loadShortcuts();
-                
+
                 langMenu.style.display = 'none';
                 langTrigger.setAttribute('aria-expanded', 'false');
                 e.stopPropagation();
             };
-            
+
             item.addEventListener('click', handleSelect);
             item.addEventListener('keydown', (e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
@@ -251,17 +299,17 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         // 3. GLOBAL CLOSE
-        document.addEventListener('click', () => { 
+        document.addEventListener('click', () => {
             langMenu.style.display = 'none';
             langTrigger.setAttribute('aria-expanded', 'false');
         });
-        
+
         // 4. ESCAPE KEY CLOSE
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape' && langMenu.style.display === 'block') {
                 langMenu.style.display = 'none';
                 langTrigger.setAttribute('aria-expanded', 'false');
-                langTrigger.focus(); 
+                langTrigger.focus();
             }
         });
     }

@@ -313,85 +313,63 @@ function switchMode(newMode) {
 function getClickableTarget(el) {
     if (!el || el === document.body || el.nodeType !== Node.ELEMENT_NODE) return null;
     if (el.tagName === 'TEXTAREA' || el.getAttribute('contenteditable') === 'true') return el;
-    return el.closest('button, a, input, select, textarea, [role="button"], [role="link"], [role="menuitem"], [role="checkbox"], [tabindex]:not([tabindex="-1"]), [class*="btn"], [data-testid]');
+    return el.closest('button, a, input, select, textarea, [role="button"], [role="link"], [role="menuitem"], [role="checkbox"], [tabindex]:not([tabindex="-1"]), [class*="btn"], [data-testid], [aria-label]');
 }
-
 // =======================================================
-// 8. SAVE LOGIC (ULTRA STRICT DUPLICATE CHECK)
+// 8. SAVE LOGIC
 // =======================================================
 function saveShortcut(element, key) {
     if (!chrome?.storage?.local) return;
     const currentHost = window.location.hostname;
     const profile = generateRobustProfile(element);
     
-    // Normalize Text to avoid whitespace mismatch issues
     const currentName = (profile.aria || profile.text || "Element").trim();
     const currentId = profile.id || "";
     const currentPath = profile.path || "";
+    const currentHref = profile.href || "";
 
     chrome.storage.local.get(null, (items) => {
         const userLang = items.ui_language || "English";
+        const t = window.translations?.[userLang] || window.translations?.['English'] || {
+            key_already_used: "Key '{key}' is already used for '{name}'."
+        };
+        const allItems = Object.values(items);
 
-        // 1. Check if ANY shortcut uses this Key on this Host
-        const existingKeyUsage = Object.values(items).find(item => 
+        // --- 1. CHECK: IS THIS KEY ALREADY USED ANYWHERE ON THIS SITE? ---
+        const keyConflict = allItems.find(item => 
             item.key === key && 
             (item.url === currentHost || item.url === "<URL>")
         );
 
-        // 2. CONFLICT RESOLUTION
-        if (existingKeyUsage) {
-            const existingName = (existingKeyUsage.name || "Element").trim();
-            const existingId = existingKeyUsage.profile?.id || "";
-            const existingPath = existingKeyUsage.profile?.path || "";
-
-            // "Is this the SAME button?" 
-            // We require AT LEAST ONE specific identifier to match EXACTLY.
-            // A) ID matches (Strongest)
-            // B) Path matches (Medium)
-            // C) Name matches (Weakest, but needed for visual confirmation)
-            
-            const isIdMatch = (currentId !== "" && currentId === existingId);
-            const isPathMatch = (currentPath === existingPath);
-            const isNameMatch = (currentName === existingName);
-
-            // If it looks like a different button, BLOCK IT.
-            // Rule: If Names differ -> Block. If Paths differ -> Block.
-            if (!isIdMatch && (!isPathMatch || !isNameMatch)) {
-                
-                // *** HARD BLOCK ***
+        if (keyConflict) {
+            // Let's check if the conflicting key belongs to the EXACT SAME button
+            const isSameButtonId = currentId !== "" && currentId === (keyConflict.profile?.id || "");
+            const isSameButtonPath = currentPath === (keyConflict.profile?.path || "");
+            if (!isSameButtonId && !isSameButtonPath) {
                 isLocked = false;
-                const msgs = {
-                    "English": `Key '${key}' is already used for '${existingName}'.`,
-                    "हिंदी": `कुंजी '${key}' का उपयोग पहले से ही '${existingName}' के लिए किया जा रहा है।`,
-                    "मराठी": `कळ '${key}' आधीच '${existingName}' साठी वापरली आहे।`,
-                    "മലയാളം": `കീ '${key}' ഇതിനകം '${existingName}' എന്നതിനായി ഉപയോഗിക്കുന്നു.`
-                };
-                
-                announceToScreenReader(msgs[userLang] || msgs["English"], "red");
+                const existingName = keyConflict.name || "another button";
+                const msg = t.key_already_used.replace("{key}", key).replace("{name}", existingName);
+                announceToScreenReader(msg, "red");
                 element.style.outline = "4px solid #DC3545"; 
                 setTimeout(() => { if(currentMode) addHighlight(element); }, 1500);
-                
-                return; // STOP. Do NOT Overwrite.
+                return;
             }
         }
 
-        // 3. PROCEED TO SAVE
+        // --- 2. SAVE NEW SHORTCUT ---
         isSaving = true;
-        let simpleId = profile.id ? `#${profile.id}` : (profile.text || profile.path);
-
-        const idToDelete = Object.keys(items).find(id => items[id].key === key && items[id].url === currentHost);
-        if (idToDelete) chrome.storage.local.remove(idToDelete);
-
+        if (keyConflict) {
+             chrome.storage.local.remove(`shortcut_${keyConflict.id}`);
+        }
         const uniqueId = Date.now().toString();
+        const simpleId = profile.id ? `#${profile.id}` : (profile.text || profile.path);
         const data = { id: uniqueId, url: currentHost, name: currentName, profile: profile, elementId: simpleId, key: key };
 
         chrome.storage.local.set({ [`shortcut_${uniqueId}`]: data }, () => {
             isSaving = false;
             isLocked = false;
-            
             announceToScreenReader(`Saved shortcut Alt ${key}`, "green");
-            
-            element.style.outline = "4px solid #00E676"; 
+            element.style.outline = "4px solid #00E676";
             setTimeout(() => {
                 if(currentMode) addHighlight(element); 
                 else removeHighlight(element);
@@ -399,7 +377,6 @@ function saveShortcut(element, key) {
         });
     });
 }
-
 // =======================================================
 // 9. EXECUTION LOGIC
 // =======================================================
@@ -432,55 +409,91 @@ function executeShortcut(element) {
     element.focus();
     element.click(); 
 }
-
 function findElementWithHealing(profile) {
     if (!profile) return { element: null, healed: false };
-    let candidate = null;
-    if (profile.id && document.getElementById(profile.id)) return { element: document.getElementById(profile.id), healed: false };
-    if (profile.testId) { candidate = document.querySelector(`[data-testid="${profile.testId}"]`); if(candidate) return { element: candidate, healed: true }; }
-    if (profile.aria) { candidate = document.querySelector(`[aria-label="${profile.aria.replace(/"/g, '\\"')}"]`); if(candidate) return { element: candidate, healed: true }; }
-    if (profile.text) {
+    if (profile.id && document.getElementById(profile.id)) {
+        return { element: document.getElementById(profile.id), healed: false };
+    }
+    if (profile.href) {
         try {
-            const xpath = `//${profile.tag}[contains(text(), '${profile.text.trim()}')]`;
-            const result = document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
-            if(result.singleNodeValue) return { element: result.singleNodeValue, healed: true };
+            const link = document.querySelector(`a[href="${profile.href.replace(/"/g, '\\"')}"]`);
+            if (link) return { element: link, healed: true }; 
         } catch(e) {}
     }
-    if (profile.path) { try { if(document.querySelector(profile.path)) return { element: document.querySelector(profile.path), healed: true }; } catch(e){} }
+    if (profile.testId) { 
+        const e = document.querySelector(`[data-testid="${profile.testId}"]`); 
+        if(e) return { element: e, healed: true }; 
+    }
+    if (profile.path) { 
+        try { 
+            const e = document.querySelector(profile.path); 
+            if(e) return { element: e, healed: true }; 
+        } catch(e){} 
+    }
+    if (profile.aria) { 
+        const e = document.querySelector(`[aria-label="${profile.aria.replace(/"/g, '\\"')}"]`); 
+        if(e) return { element: e, healed: true }; 
+    }
+
     return { element: null, healed: false };
 }
 
+// HELPER UTILITIES
 function generateRobustProfile(element) {
     if (!element) return null;
+    let safeId = null;
+    if (element.id) {
+        const escapedId = CSS.escape(element.id);
+        const count = document.querySelectorAll(`#${escapedId}`).length;
+        if (count === 1) {
+            safeId = element.id; 
+        }
+    }
+
+    let href = element.getAttribute('href') || null;
+    if (!href && element.closest('a')) {
+        href = element.closest('a').getAttribute('href');
+    }
+
     return {
-        id: element.id || null,
+        id: safeId,
         tag: element.tagName.toLowerCase(),
         text: element.innerText ? element.innerText.trim().substring(0, 50) : null,
         aria: element.getAttribute('aria-label') || null,
         testId: element.getAttribute('data-testid') || null,
+        href: href,
         path: generateCssPath(element)
     };
 }
 function findElementBySelector(selector) { try { return document.querySelector(selector); } catch { return null; } }
 
-// UPDATED CSS PATH GENERATOR (More Unique)
+// CSS PATH GENERATOR
 function generateCssPath(el) { 
     if (!(el instanceof Element)) return; 
     const path = []; 
     while (el.nodeType === Node.ELEMENT_NODE) { 
         let selector = el.nodeName.toLowerCase(); 
-        if (el.id && !/\d/.test(el.id)) { 
+
+        let isUnique = false;
+        if (el.id) {
+            const escaped = CSS.escape(el.id);
+            if (document.querySelectorAll(`#${escaped}`).length === 1) {
+                isUnique = true;
+            }
+        }
+
+        if (isUnique) { 
             selector += '#' + CSS.escape(el.id); 
             path.unshift(selector); 
             break; 
-        } else { 
+        }else { 
             let sib = el, nth = 1; 
             while (sib = sib.previousElementSibling) { 
                 if (sib.nodeName.toLowerCase() === selector) nth++; 
             } 
-            // Always add nth-of-type to be safe
             selector += `:nth-of-type(${nth})`; 
         } 
+
         path.unshift(selector); 
         el = el.parentNode; 
     } 
