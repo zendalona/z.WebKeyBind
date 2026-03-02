@@ -1,3 +1,15 @@
+// Import utilities
+import { 
+    createAnnouncer, 
+    announceToScreenReader as announce, 
+    getISOCode,
+    NOTIFICATION_COLORS,
+    Z_INDEX_MAX,
+    NOTIFICATION_DURATION,
+    NOTIFICATION_FADE_DURATION,
+    removeElementById
+} from './utils.js';
+
 // 1. STATE & VARIABLES
 let currentMode = null;
 let activeHoverElement = null;
@@ -6,70 +18,77 @@ let isSaving = false;
 let isLocked = false;
 let shortcutCache = [];
 
-// 2. ACCESSIBILITY ENGINE
-const srAnnouncer = document.createElement('div');
-srAnnouncer.id = "webkeybind-announcer";
-srAnnouncer.setAttribute('aria-live', 'assertive');
-srAnnouncer.setAttribute('aria-atomic', 'true');
-srAnnouncer.style.cssText = 'position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap;';
-document.body.appendChild(srAnnouncer);
+// 2. DOM CACHE
+const domCache = {
+    announcer: null,
+    notification: null,
+    shadowRoot: null
+};
 
+// Initialize announcer
+domCache.announcer = createAnnouncer('webkeybind-announcer');
+document.body.appendChild(domCache.announcer);
+
+// 3. ACCESSIBILITY ENGINE
 function announceToScreenReader(message, color = "default") {
     showNotification(message, color);
-    const langMap = { "English": "en", "हिंदी": "hi", "मराठी": "mr", "മലയാളം": "ml" };
-    const isoCode = langMap[window.currentLang] || "en";
-    srAnnouncer.setAttribute('lang', isoCode);
-
-    srAnnouncer.textContent = '';
-    setTimeout(() => { srAnnouncer.textContent = message; }, 50);
+    const isoCode = getISOCode(window.currentLang || "English");
+    announce(domCache.announcer, message, isoCode);
 }
 
 function showNotification(msg, colorType) {
     if (colorType === "modal") return;
 
-    const existing = document.getElementById('webkeybind-notification');
-    if (existing) existing.remove();
+    // Remove existing notification using cache
+    if (domCache.notification && domCache.notification.parentNode) {
+        domCache.notification.remove();
+        domCache.notification = null;
+    }
 
     const div = document.createElement('div');
     div.id = 'webkeybind-notification';
     div.innerText = msg;
     div.setAttribute('aria-hidden', 'true');
 
-    let bgColor = "#333333";
-    if (colorType === "blue") bgColor = "#007BFF";
-    if (colorType === "purple") bgColor = "#6f42c1";
-    if (colorType === "orange") bgColor = "#FF9800";
-    if (colorType === "red") bgColor = "#DC3545";
-    if (colorType === "green") bgColor = "#28A745";
+    const bgColor = NOTIFICATION_COLORS[colorType] || NOTIFICATION_COLORS.default;
 
     div.style.cssText = `
         position: fixed !important; top: 20px !important; left: 50% !important; 
         transform: translateX(-50%) !important; background-color: ${bgColor} !important; 
         color: white !important; padding: 12px 24px !important; border-radius: 8px !important;
-        z-index: 2147483647 !important; font-family: sans-serif !important; 
+        z-index: ${Z_INDEX_MAX} !important; font-family: sans-serif !important; 
         font-weight: bold !important; font-size: 16px !important;
         box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important; transition: opacity 0.3s ease-in-out !important; pointer-events: none;
     `;
 
     document.body.appendChild(div);
+    domCache.notification = div;
+
     setTimeout(() => {
         if (div && div.parentNode) {
             div.style.opacity = "0";
-            setTimeout(() => { if (div.parentNode) div.remove(); }, 300);
+            setTimeout(() => { 
+                if (div.parentNode) {
+                    div.remove();
+                    if (domCache.notification === div) domCache.notification = null;
+                }
+            }, NOTIFICATION_FADE_DURATION);
         }
-    }, 4000);
+    }, NOTIFICATION_DURATION);
 }
 
-// 3. UI INJECTION (Robust)
+// 4. UI INJECTION (Robust)
 function toggleSettingsModal() {
     if (!chrome.runtime?.id) {
         announceToScreenReader("Extension context invalid. Refresh page.", "red");
         return;
     }
 
+    // Check cache first
     const existing = document.getElementById('webkeybind-shadow-root');
     if (existing) {
         existing.remove();
+        domCache.shadowRoot = null;
         announceToScreenReader("Settings window is closed", "red");
         currentMode = null;
         updateHighlight(null);
@@ -79,19 +98,21 @@ function toggleSettingsModal() {
     try {
         const host = document.createElement('div');
         host.id = 'webkeybind-shadow-root';
-        host.style.cssText = 'position: fixed; z-index: 2147483647; top: 0; left: 0; width: 0; height: 0;';
+        host.style.cssText = `position: fixed; z-index: ${Z_INDEX_MAX}; top: 0; left: 0; width: 0; height: 0;`;
         document.body.appendChild(host);
+        domCache.shadowRoot = host;
 
         const shadow = host.attachShadow({ mode: 'open' });
 
         const backdrop = document.createElement('div');
         backdrop.style.cssText = `
             position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
-            background: rgba(0,0,0,0.5); z-index: 2147483646;
+            background: rgba(0,0,0,0.5); z-index: ${Z_INDEX_MAX - 1};
             backdrop-filter: blur(2px);
         `;
         backdrop.onclick = () => {
             host.remove();
+            domCache.shadowRoot = null;
             announceToScreenReader("Settings window is closed", "red");
         };
 
@@ -102,7 +123,7 @@ function toggleSettingsModal() {
             width: 900px; height: 650px; max-width: 95vw; max-height: 95vh;
             border: none; border-radius: 12px; 
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-            z-index: 2147483647; background: white;
+            z-index: ${Z_INDEX_MAX}; background: white;
         `;
 
         shadow.appendChild(backdrop);
@@ -115,7 +136,7 @@ function toggleSettingsModal() {
     }
 }
 
-// 4. CACHE SYSTEM
+// 5. CACHE SYSTEM
 function updateShortcutCache() {
     if (!chrome?.storage?.local) return;
     try {
@@ -136,7 +157,7 @@ try {
     });
 } catch (e) { }
 
-// 5. LISTENERS
+// 6. LISTENERS
 function isInputActive() {
     const el = document.activeElement;
     if (!el) return false;
@@ -221,7 +242,7 @@ document.addEventListener('click', (e) => {
     }
 }, true);
 
-// 6. HIGHLIGHT ENGINE
+// 7. HIGHLIGHT ENGINE
 function updateHighlight(newElement) {
     document.querySelectorAll('[data-webkeybind-highlight="true"]').forEach(el => {
         removeHighlight(el);
@@ -252,7 +273,7 @@ function removeHighlight(el) {
     el.removeAttribute('data-webkeybind-highlight');
 }
 
-// 7. MODE SWITCHING
+// 8. MODE SWITCHING
 function switchMode(newMode) {
     if (!chrome.runtime?.id) { announceToScreenReader("Please refresh the page.", "red"); return; }
     isLocked = false;
@@ -295,7 +316,7 @@ function getClickableTarget(el) {
     return el.closest('button, a, input, select, textarea, [role="button"], [role="link"], [role="menuitem"], [role="checkbox"], [tabindex]:not([tabindex="-1"]), [class*="btn"], [data-testid], [aria-label]');
 }
 
-// 8. SAVE LOGIC
+// 9. SAVE LOGIC
 function saveShortcut(element, key) {
     if (!chrome?.storage?.local) return;
     const currentHost = window.location.hostname;
@@ -352,7 +373,7 @@ function saveShortcut(element, key) {
     });
 }
 
-// 9. EXECUTION LOGIC
+// 10. EXECUTION LOGIC
 function runCachedShortcut(match) {
     let result = { element: null, healed: false };
 
@@ -380,6 +401,7 @@ function executeShortcut(element) {
     element.focus();
     element.click();
 }
+
 function findElementWithHealing(profile) {
     if (!profile) return { element: null, healed: false };
     if (profile.id && document.getElementById(profile.id)) {
@@ -434,7 +456,14 @@ function generateRobustProfile(element) {
         path: generateCssPath(element)
     };
 }
-function findElementBySelector(selector) { try { return document.querySelector(selector); } catch { return null; } }
+
+function findElementBySelector(selector) { 
+    try { 
+        return document.querySelector(selector); 
+    } catch { 
+        return null; 
+    } 
+}
 
 function generateCssPath(el) {
     if (!(el instanceof Element)) return;
@@ -468,7 +497,7 @@ function generateCssPath(el) {
     return path.join(" > ");
 }
 
-// 10. AUDIO READER
+// 11. AUDIO READER
 function readAllShortcuts() {
     if (!chrome?.storage?.local) return;
     const currentHost = window.location.hostname;

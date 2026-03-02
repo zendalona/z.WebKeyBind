@@ -37,9 +37,11 @@
                 "<all_urls>"
             ],
             "js": [
-                "language.js","content.js"
+                "language.js",
+                "content.js"
             ],
-            "run_at": "document_idle"
+            "run_at": "document_idle",
+            "type": "module"
         }
     ],
     "web_accessible_resources": [
@@ -47,6 +49,7 @@
             "resources": [
                 "index.html",
                 "style.css",
+                "utils.js",
                 "popup.js",
                 "language.js",
                 "import_export.js"
