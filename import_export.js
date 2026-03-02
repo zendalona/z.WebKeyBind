@@ -1,21 +1,38 @@
+// Import utilities
+import { normalizeUrl } from './utils.js';
+
+// DOM CACHE
+const domCache = {
+    btnExportSite: null,
+    btnExportAll: null,
+    btnImport: null,
+    menuContainer: null,
+    menuBurger: null,
+    menuDropdown: null,
+    closeMenuBtn: null,
+    importModal: null,
+    dropZone: null,
+    fileInput: null,
+    btnCloseImport: null
+};
+
 document.addEventListener('DOMContentLoaded', () => {
-    const btnExportSite = document.getElementById('btn-export-site');
-    const btnExportAll = document.getElementById('btn-export-all');
-    const btnImport = document.getElementById('btn-import');
-
-    const menuContainer = document.querySelector('.menu-container');
-    const menuBurger = document.querySelector('.menu-burger');
-    const menuDropdown = document.querySelector('.import-export-dropdown');
-    const closeMenuBtn = document.querySelector('.close-menu');
-
-    const importModal = document.getElementById('import-modal');
-    const dropZone = document.getElementById('drop-zone');
-    const fileInput = document.getElementById('file-input');
-    const btnCloseImport = document.getElementById('btn-close-import');
+    // Initialize DOM cache
+    domCache.btnExportSite = document.getElementById('btn-export-site');
+    domCache.btnExportAll = document.getElementById('btn-export-all');
+    domCache.btnImport = document.getElementById('btn-import');
+    domCache.menuContainer = document.querySelector('.menu-container');
+    domCache.menuBurger = document.querySelector('.menu-burger');
+    domCache.menuDropdown = document.querySelector('.import-export-dropdown');
+    domCache.closeMenuBtn = document.querySelector('.close-menu');
+    domCache.importModal = document.getElementById('import-modal');
+    domCache.dropZone = document.getElementById('drop-zone');
+    domCache.fileInput = document.getElementById('file-input');
+    domCache.btnCloseImport = document.getElementById('btn-close-import');
 
     function handleFocusTrap(e) {
         if (e.key !== 'Tab') return;
-        const focusableElements = importModal.querySelectorAll(
+        const focusableElements = domCache.importModal.querySelectorAll(
             'a[href], button, textarea, input, select, [tabindex]:not([tabindex="-1"])'
         );
 
@@ -36,34 +53,34 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    if (menuBurger && menuDropdown) {
-        menuBurger.addEventListener('click', (e) => {
+    if (domCache.menuBurger && domCache.menuDropdown) {
+        domCache.menuBurger.addEventListener('click', (e) => {
             e.stopPropagation();
             const langMenu = document.getElementById('lang-menu');
             const langBtn = document.getElementById('lang-button');
             if (langMenu) langMenu.style.display = 'none';
             if (langBtn) langBtn.setAttribute('aria-expanded', 'false');
 
-            const isVisible = menuDropdown.style.display === 'block';
-            menuDropdown.style.display = isVisible ? 'none' : 'block';
+            const isVisible = domCache.menuDropdown.style.display === 'block';
+            domCache.menuDropdown.style.display = isVisible ? 'none' : 'block';
         });
-        if (menuContainer) {
-            menuContainer.addEventListener('focusout', (event) => {
-                if (!menuContainer.contains(event.relatedTarget)) {
-                    menuDropdown.style.display = 'none';
+        if (domCache.menuContainer) {
+            domCache.menuContainer.addEventListener('focusout', (event) => {
+                if (!domCache.menuContainer.contains(event.relatedTarget)) {
+                    domCache.menuDropdown.style.display = 'none';
                 }
             });
         }
     }
 
-    if (closeMenuBtn) {
-        closeMenuBtn.addEventListener('click', (e) => {
+    if (domCache.closeMenuBtn) {
+        domCache.closeMenuBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            menuDropdown.style.display = 'none';
+            domCache.menuDropdown.style.display = 'none';
         });
     }
     document.addEventListener('click', () => {
-        if (menuDropdown) menuDropdown.style.display = 'none';
+        if (domCache.menuDropdown) domCache.menuDropdown.style.display = 'none';
     });
 
     function exportShortcuts(exportAll) {
@@ -90,12 +107,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    if (btnExportSite) btnExportSite.addEventListener('click', () => exportShortcuts(false));
-    if (btnExportAll) btnExportAll.addEventListener('click', () => exportShortcuts(true));
+    if (domCache.btnExportSite) domCache.btnExportSite.addEventListener('click', () => exportShortcuts(false));
+    if (domCache.btnExportAll) domCache.btnExportAll.addEventListener('click', () => exportShortcuts(true));
 
     function openModal() {
-        importModal.style.display = 'flex';
-        if (menuDropdown) menuDropdown.style.display = 'none';
+        domCache.importModal.style.display = 'flex';
+        if (domCache.menuDropdown) domCache.menuDropdown.style.display = 'none';
         document.addEventListener('keydown', handleFocusTrap);
         const silentStart = document.getElementById('silent-start');
         if (silentStart) {
@@ -104,54 +121,54 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function closeModal() {
-        if (!importModal) return;
-        importModal.style.display = 'none';
+        if (!domCache.importModal) return;
+        domCache.importModal.style.display = 'none';
         document.removeEventListener('keydown', handleFocusTrap);
-        if (btnImport) btnImport.focus();
+        if (domCache.btnImport) domCache.btnImport.focus();
     }
 
-    if (btnImport) btnImport.addEventListener('click', openModal);
-    if (btnCloseImport) btnCloseImport.addEventListener('click', closeModal);
+    if (domCache.btnImport) domCache.btnImport.addEventListener('click', openModal);
+    if (domCache.btnCloseImport) domCache.btnCloseImport.addEventListener('click', closeModal);
 
-    if (importModal) {
-        importModal.addEventListener('click', (e) => {
-            if (e.target === importModal) closeModal();
+    if (domCache.importModal) {
+        domCache.importModal.addEventListener('click', (e) => {
+            if (e.target === domCache.importModal) closeModal();
         });
         document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && importModal.style.display === 'flex') {
+            if (e.key === 'Escape' && domCache.importModal.style.display === 'flex') {
                 closeModal();
             }
         });
     }
 
-    if (dropZone) {
-        dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('keydown', (e) => {
+    if (domCache.dropZone) {
+        domCache.dropZone.addEventListener('click', () => domCache.fileInput.click());
+        domCache.dropZone.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' || e.key === ' ') {
                 e.preventDefault();
-                fileInput.click();
+                domCache.fileInput.click();
             }
         });
-        dropZone.addEventListener('dragover', (e) => {
+        domCache.dropZone.addEventListener('dragover', (e) => {
             e.preventDefault();
-            dropZone.style.backgroundColor = '#f0ebff';
-            dropZone.style.borderColor = '#7c4dff';
+            domCache.dropZone.style.backgroundColor = '#f0ebff';
+            domCache.dropZone.style.borderColor = '#7c4dff';
         });
-        dropZone.addEventListener('dragleave', () => {
-            dropZone.style.backgroundColor = '#f9f9f9';
-            dropZone.style.borderColor = '#ccc';
+        domCache.dropZone.addEventListener('dragleave', () => {
+            domCache.dropZone.style.backgroundColor = '#f9f9f9';
+            domCache.dropZone.style.borderColor = '#ccc';
         });
-        dropZone.addEventListener('drop', (e) => {
+        domCache.dropZone.addEventListener('drop', (e) => {
             e.preventDefault();
-            dropZone.style.backgroundColor = '#f9f9f9';
+            domCache.dropZone.style.backgroundColor = '#f9f9f9';
             if (e.dataTransfer.files.length) processFile(e.dataTransfer.files[0]);
         });
     }
 
-    if (fileInput) {
-        fileInput.addEventListener('change', (e) => {
+    if (domCache.fileInput) {
+        domCache.fileInput.addEventListener('change', (e) => {
             if (e.target.files.length) processFile(e.target.files[0]);
-            fileInput.value = '';
+            domCache.fileInput.value = '';
         });
     }
 

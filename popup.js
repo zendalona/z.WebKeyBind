@@ -1,39 +1,43 @@
-// VALIDATION & HELPER UTILITIES
-function isValidURL(string) {
-    if (!string) return false;
-    try {
-        new URL(string);
-        return true;
-    } catch (_) {
-        try {
-            new URL('https://' + string);
-            return true;
-        } catch (__) {
-            return false;
-        }
-    }
-}
+// Import utilities
+import { 
+    isValidURL, 
+    normalizeUrl, 
+    createAnnouncer, 
+    announceToScreenReader as announce,
+    debounce,
+    DEBOUNCE_DELAY
+} from './utils.js';
 
-function normalizeUrl(url) {
-    return url.replace(/^(?:https?:\/\/)?(?:www\.)?/i, "").split('/')[0].toLowerCase();
-}
+// DOM CACHE
+const domCache = {
+    announcer: null,
+    shortcutList: null,
+    addBtn: null,
+    showAllBtn: null,
+    deleteAllBtn: null,
+    alertElement: null
+};
 
 // INITIALIZATION & MAIN LOGIC
 document.addEventListener('DOMContentLoaded', () => {
     window.currentLang = "English";
 
-    const popupAnnouncer = document.createElement('div');
-    popupAnnouncer.setAttribute('aria-live', 'assertive');
-    popupAnnouncer.setAttribute('aria-atomic', 'true');
-    popupAnnouncer.style.cssText = 'position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;';
-    document.body.appendChild(popupAnnouncer);
+    // Initialize DOM cache
+    domCache.announcer = createAnnouncer('webkeybind-popup-announcer');
+    document.body.appendChild(domCache.announcer);
+    
+    domCache.shortcutList = document.querySelector('.shortcut-list');
+    domCache.addBtn = document.querySelector('.btn-add');
+    domCache.showAllBtn = document.querySelector('.btn-show-all');
+    domCache.deleteAllBtn = document.querySelector('.btn-delete-all') || document.getElementById('btn-delete-all');
 
     function showAccessibleAlert(msg, type = "error") {
-        popupAnnouncer.textContent = '';
-        setTimeout(() => { popupAnnouncer.textContent = msg; }, 50);
+        announce(domCache.announcer, msg);
 
-        const existing = document.getElementById('webkeybind-popup-alert');
-        if (existing) existing.remove();
+        // Remove existing alert using cache
+        if (domCache.alertElement && domCache.alertElement.parentNode) {
+            domCache.alertElement.remove();
+        }
 
         const alertDiv = document.createElement('div');
         alertDiv.id = 'webkeybind-popup-alert';
@@ -53,6 +57,7 @@ document.addEventListener('DOMContentLoaded', () => {
             animation: popup-fadein 0.3s ease-out;
         `;
         document.body.appendChild(alertDiv);
+        domCache.alertElement = alertDiv;
 
         if (!document.getElementById('popup-alert-styles')) {
             const style = document.createElement('style');
@@ -65,7 +70,14 @@ document.addEventListener('DOMContentLoaded', () => {
             if (document.body.contains(alertDiv)) {
                 alertDiv.style.opacity = "0";
                 alertDiv.style.transition = "opacity 0.3s";
-                setTimeout(() => { if (document.body.contains(alertDiv)) alertDiv.remove(); }, 300);
+                setTimeout(() => { 
+                    if (document.body.contains(alertDiv)) {
+                        alertDiv.remove();
+                        if (domCache.alertElement === alertDiv) {
+                            domCache.alertElement = null;
+                        }
+                    }
+                }, 300);
             }
         }, 3000);
     }
@@ -73,8 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function showAccessibleConfirm(msg, onConfirmCallback) {
         const t = window.translations?.[window.currentLang] || window.translations?.['English'] || {};
 
-        popupAnnouncer.textContent = '';
-        setTimeout(() => { popupAnnouncer.textContent = msg + " Press Tab to select options."; }, 50);
+        announce(domCache.announcer, msg + " Press Tab to select options.");
 
         const existing = document.getElementById('wkb-confirm-modal');
         if (existing) existing.remove();
@@ -143,11 +154,6 @@ document.addEventListener('DOMContentLoaded', () => {
         btnCancel.focus();
     }
 
-    const shortcutList = document.querySelector('.shortcut-list');
-    const addBtn = document.querySelector('.btn-add');
-    const showAllBtn = document.querySelector('.btn-show-all');
-    const deleteAllBtn = document.querySelector('.btn-delete-all') || document.getElementById('btn-delete-all');
-
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]?.id) chrome.tabs.connect(tabs[0].id, { name: "z-webkeybind-popup" });
     });
@@ -169,11 +175,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     window.loadShortcuts = function () {
-        shortcutList.innerHTML = '';
+        domCache.shortcutList.innerHTML = '';
         const t = window.translations?.[window.currentLang] || window.translations?.['English'] || {};
 
-        if (showAllBtn) {
-            showAllBtn.innerHTML = `${isShowingAll ? (t.showCurrent || "Show Current") : (t.showAll || "Show All")} <span class="arrow-circle">${isShowingAll ? '⌃' : '⌄'}</span>`;
+        if (domCache.showAllBtn) {
+            domCache.showAllBtn.innerHTML = `${isShowingAll ? (t.showCurrent || "Show Current") : (t.showAll || "Show All")} <span class="arrow-circle">${isShowingAll ? '⌃' : '⌄'}</span>`;
         }
 
         chrome.storage.local.get(null, (items) => {
@@ -190,12 +196,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 const msg = document.createElement('div');
                 msg.style.cssText = "text-align:center; padding:20px; color:#999; font-size:13px; font-style:italic;";
                 msg.innerText = `${t.no_shortcuts || "No shortcuts"} ${isShowingAll ? '' : window.currentSiteHostname}`;
-                shortcutList.appendChild(msg);
+                domCache.shortcutList.appendChild(msg);
             } else {
                 displayList.forEach((data, index) => createRow(data, index + 1));
             }
         });
     };
+
+    // Debounced save function
+    const debouncedSave = debounce((entry) => {
+        if (entry.url && isValidURL(entry.url) && entry.name && entry.name.trim() !== "" && 
+            entry.elementId && entry.elementId.trim() !== "" && entry.key && entry.key.trim() !== "") {
+            chrome.storage.local.set({ [`shortcut_${entry.id}`]: entry });
+        } else {
+            chrome.storage.local.remove(`shortcut_${entry.id}`);
+        }
+    }, DEBOUNCE_DELAY);
 
     function createRow(data, index) {
         const t = window.translations?.[window.currentLang] || window.translations?.['English'] || {};
@@ -249,11 +265,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             return;
                         }
                         data[field] = value;
-                        validateAndSave(data);
+                        debouncedSave(data);
                     });
                 } else if (field !== 'elementId') {
                     data[field] = value;
-                    validateAndSave(data);
+                    debouncedSave(data);
                 }
             });
         });
@@ -264,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const val = e.target.value.trim();
                 if (val === "") {
                     data.elementId = "";
-                    validateAndSave(data);
+                    debouncedSave(data);
                     return;
                 }
                 chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -292,19 +308,11 @@ document.addEventListener('DOMContentLoaded', () => {
                         } else {
                             e.target.classList.remove('input-error');
                             data.elementId = val;
-                            validateAndSave(data);
+                            debouncedSave(data);
                         }
                     });
                 });
             });
-        }
-
-        function validateAndSave(entry) {
-            if (entry.url && isValidURL(entry.url) && entry.name && entry.name.trim() !== "" && entry.elementId && entry.elementId.trim() !== "" && entry.key && entry.key.trim() !== "") {
-                chrome.storage.local.set({ [`shortcut_${entry.id}`]: entry });
-            } else {
-                chrome.storage.local.remove(`shortcut_${entry.id}`);
-            }
         }
 
         row.querySelector('.btn-remove').addEventListener('click', () => {
@@ -317,28 +325,28 @@ document.addEventListener('DOMContentLoaded', () => {
             });
         });
 
-        shortcutList.appendChild(row);
+        domCache.shortcutList.appendChild(row);
     }
 
-    if (showAllBtn) {
-        showAllBtn.addEventListener('click', () => {
+    if (domCache.showAllBtn) {
+        domCache.showAllBtn.addEventListener('click', () => {
             isShowingAll = !isShowingAll;
             window.loadShortcuts();
         });
     }
 
-    if (addBtn) {
-        addBtn.addEventListener('click', () => {
+    if (domCache.addBtn) {
+        domCache.addBtn.addEventListener('click', () => {
             const newShortcut = { id: Date.now().toString(), url: window.currentSiteHostname || "example.com", name: "", elementId: "", key: "" };
             createRow(newShortcut, document.querySelectorAll('.shortcut-row').length + 1);
-            shortcutList.scrollTop = shortcutList.scrollHeight;
+            domCache.shortcutList.scrollTop = domCache.shortcutList.scrollHeight;
         });
     }
 
     document.querySelectorAll('.language-dropdown, .menu-container').forEach(el => el.removeAttribute('tabindex'));
 
-    if (deleteAllBtn) {
-        deleteAllBtn.addEventListener('click', () => {
+    if (domCache.deleteAllBtn) {
+        domCache.deleteAllBtn.addEventListener('click', () => {
             const t = window.translations?.[window.currentLang] || window.translations?.['English'] || {};
             const host = window.currentSiteHostname || "";
             showAccessibleConfirm(t.delete_all_confirm || "Delete these shortcuts?", () => {
