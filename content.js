@@ -24,8 +24,10 @@ srAnnouncer2.setAttribute('aria-live', 'assertive');
 srAnnouncer2.setAttribute('aria-atomic', 'true');
 srAnnouncer2.style.cssText = commonStyles;
 
-document.body.appendChild(srAnnouncer1);
-document.body.appendChild(srAnnouncer2);
+if (document.body) {
+    document.body.appendChild(srAnnouncer1);
+    document.body.appendChild(srAnnouncer2);
+}
 
 let announcerToggle = true;
 
@@ -78,6 +80,7 @@ function showNotification(msg, colorType) {
         box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important; transition: opacity 0.3s ease-in-out !important; pointer-events: none;
     `;
     
+    if (!document.body) return;
     document.body.appendChild(div);
     setTimeout(() => { 
         if(div && div.parentNode) { 

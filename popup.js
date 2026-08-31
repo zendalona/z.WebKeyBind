@@ -527,9 +527,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        if (tabs[0]?.id) chrome.tabs.connect(tabs[0].id, { name: "z-webkeybind-popup" });
-    });
 
     window.currentSiteHostname = "";
     let isShowingAll = false;
